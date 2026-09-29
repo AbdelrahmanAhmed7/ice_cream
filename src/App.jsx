@@ -1,0 +1,983 @@
+﻿import { useState, useRef } from 'react'
+import { buildPurchaseMeta, createMetaEventId, markOrderPurchaseSent, trackBrowserEventOnce, wasOrderPurchaseSent } from './metaTracking'
+import { CheckCircle2, Phone, Mail } from 'lucide-react'
+import logo from './assets/logo.png'
+import heroIcecreamImg from './assets/icecream-vanilla.jpeg'
+import heroKetobarImg from './assets/hero-ketobar-double-chocolate.png'
+import iceVanilla from './assets/icecream-vanilla.jpeg'
+import iceChocolate from './assets/icecream-chocolate.jpeg'
+import iceStrawberry from './assets/icecream-strawberry.jpeg'
+import icePistachio from './assets/icecream-pistachio.png'
+import iceBlueberry from './assets/icecream-blueberry.png'
+import iceCantaloupe from './assets/icecream-cantaloupe.png'
+import iceHazelnut from './assets/icecream-hazelnut.png'
+import iceMango from './assets/icecream-mango.jpeg'
+import ketoAlmond from './assets/ketobar-almond.png'
+import ketoCoconut from './assets/ketobar-coconut.png'
+import ketoHazelnut from './assets/ketobar-hazelnut.png'
+import ketoPeanut from './assets/ketobar-peanut-butter.png'
+import './App.css'
+
+// العروض النهائية (29/09/2026 من المستخدم):
+// - آيس كريم: 5 قطع بـ 300 جنيه + توصيل 50 جنيه
+// - كيتو بار: 4 قطع بـ 250 جنيه + التوصيل مجاني
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+/** ملخص المنتجات — TODO: تحديث الأحجام النهائية أول ما التفاصيل تتبعت */
+const PRODUCT_SIZES_LABEL = 'آيس كريم · كيتو بار'
+
+/** نكهات الآيس كريم — من صور المنتجات (8 نكهات) */
+const ICECREAM_FLAVORS = ['فانيليا', 'شوكولاتة', 'فراولة', 'مانجو', 'بلوبيري', 'فسدق', 'بندق', 'كنتالوب']
+
+/** نكهات الكيتو بار — نهائية من المستخدم (29/09/2026) */
+const KETO_BAR_FLAVORS = ['بندق', 'زبدة فول سوداني', 'دبل شوكولاتة', 'جوز هند', 'لوز']
+
+const DELIVERY_FEE = 50
+const SHIPPING_ONCE_LABEL = 'الشحن يُحسب مرة واحدة فقط للطلب'
+const ICECREAM_SHIPPING_LABEL = 'التوصيل 50 ج'
+const KETOBAR_SHIPPING_LABEL = 'التوصيل مجاني 🚚'
+const DELIVERY_HOURS_LABEL = 'التوصيل خلال ساعات من تأكيد الطلب'
+
+/** ثقة الشراء — تظهر مرة واحدة أسفل العروض فقط */
+const offerTrustBadges = [
+  { icon: '💳', label: 'الدفع عند الاستلام' },
+  { icon: '📞', label: 'تأكيد الطلب سريع' },
+]
+
+// الشحن مجاني لجميع العروض حالياً — البنية تدعم شحن مدفوع لعروض مستقبلية عبر freeShipping.
+const calcItemsSubtotal = (items) =>
+  items.reduce((sum, item) => sum + item.bundle.price * item.qty, 0)
+
+const calcItemsOriginalSubtotal = (items) =>
+  items.reduce((sum, item) => sum + item.bundle.originalPrice * item.qty, 0)
+
+const calcShipping = (items) => {
+  if (items.length === 0) return 0
+  const hasPaidShipping = items.some((item) => !item.bundle.freeShipping)
+  return hasPaidShipping ? DELIVERY_FEE : 0
+}
+
+/** total = مجموع المنتجات + شحن واحد فقط (أو مجاني) */
+const calcOrderTotal = (items) => calcItemsSubtotal(items) + calcShipping(items)
+
+const calcOrderOriginalTotal = (items) => calcItemsOriginalSubtotal(items) + calcShipping(items)
+
+// العرضان النهائيان فقط — بدون ميكس
+const bundles = [
+  {
+    id: 'icecream',
+    name: 'عرض الآيس كريم',
+    badge: '🍨 5 قطع بـ 300 ج',
+    description: `آيس كريم Healthy & Tasty بدون سكر — 5 قطع تختار نكهاتهم بنفسك من 8 نكهات: ${ICECREAM_FLAVORS.join('، ')}`,
+    price: 300,
+    originalPrice: 300,
+    saving: 0,
+    units: 5,
+    unitsLabel: '5 قطع',
+    flavors: ICECREAM_FLAVORS,
+    deliveryNote: '🚚 التوصيل 50 جنيه',
+    freeShipping: false,
+    image: heroIcecreamImg,
+    accent: '#EC4899',
+  },
+  {
+    id: 'ketobar',
+    name: 'عرض الكيتو بار',
+    badge: '💪 4 قطع بـ 250 ج',
+    description: `كيتو بار Healthy & Tasty — سناك بروتين من غير سكر · 4 قطع من 5 نكهات: ${KETO_BAR_FLAVORS.join('، ')}`,
+    price: 250,
+    originalPrice: 250,
+    saving: 0,
+    units: 4,
+    unitsLabel: '4 قطع',
+    flavors: KETO_BAR_FLAVORS,
+    deliveryNote: '🚚 التوصيل مجاني',
+    freeShipping: true,
+    image: heroKetobarImg,
+    accent: '#10B981',
+  },
+]
+
+/** عدد القطع الافتراضي لكل عرض — يُستخدم في توزيع النكهات */
+const bundleUnits = (bundleId) => bundles.find((b) => b.id === bundleId)?.units ?? 5
+
+/** إيموجي لكل نكهة — للعرض في الـ picker وشرايح الهيرو */
+const FLAVOR_EMOJI = {
+  'فانيليا': '🍦',
+  'شوكولاتة': '🍫',
+  'فراولة': '🍓',
+  'مانجو': '🥭',
+  'بلوبيري': '🫐',
+  'فسدق': '💚',
+  'بندق': '🌰',
+  'كنتالوب': '🍈',
+  'زبدة فول سوداني': '🥜',
+  'دبل شوكولاتة': '🍫',
+  'جوز هند': '🥥',
+  'لوز': '🌰',
+}
+
+/** صورة كل نكهة للـ picker — منفصلين عشان "بندق" موجودة في النوعين بصورتين مختلفتين */
+const ICECREAM_IMAGES = {
+  'فانيليا': iceVanilla,
+  'شوكولاتة': iceChocolate,
+  'فراولة': iceStrawberry,
+  'مانجو': iceMango,
+  'بلوبيري': iceBlueberry,
+  'فسدق': icePistachio,
+  'بندق': iceHazelnut,
+  'كنتالوب': iceCantaloupe,
+}
+
+const KETOBAR_IMAGES = {
+  'بندق': ketoHazelnut,
+  'زبدة فول سوداني': ketoPeanut,
+  'دبل شوكولاتة': heroKetobarImg,
+  'جوز هند': ketoCoconut,
+  'لوز': ketoAlmond,
+}
+
+const bundleImages = (bundleId) => (bundleId === 'ketobar' ? KETOBAR_IMAGES : ICECREAM_IMAGES)
+const evenSplit = (total, n) => {
+  if (!n || n <= 0) return []
+  const base = Math.floor(total / n)
+  const rem = total - base * n
+  return Array.from({ length: n }, (_, i) => base + (i < rem ? 1 : 0))
+}
+
+/** ملخص نصي: "2 فانيليا + 1 مانجو" — يتجاهل النكهات الصفرية */
+const formatFlavorSummary = (names, values) =>
+  names.map((n, i) => (values?.[i] > 0 ? `${values[i]} ${n}` : '')).filter(Boolean).join(' + ') || 'بدون تحديد'
+
+/** Hero — صياغة نهائية من المستخدم */
+const heroPerks = [
+  {label: 'بدون سكر' },
+  {label: 'مناسب للكيتو' },
+  {label: 'مناسب للدايت' },
+  {label: 'الدفع عند الاستلام' },
+]
+
+/** صور شريط الهيرو المتحرك — كل المنتجات */
+const heroMarqueeItems = [
+  { img: iceVanilla, name: 'فانيليا' },
+  { img: iceChocolate, name: 'شوكولاتة' },
+  { img: iceStrawberry, name: 'فراولة' },
+  { img: icePistachio, name: 'فسدق' },
+  { img: iceBlueberry, name: 'بلوبيري' },
+  { img: iceCantaloupe, name: 'كنتالوب' },
+  { img: iceHazelnut, name: 'بندق' },
+  { img: heroKetobarImg, name: 'دبل شوكولاتة' },
+  { img: ketoPeanut, name: 'فول سوداني' },
+  { img: ketoCoconut, name: 'جوز هند' },
+  { img: ketoAlmond, name: 'لوز' },
+  { img: ketoHazelnut, name: 'بندق بار' },
+]
+
+const benefitCards = [
+  { icon: '🍦', title: 'آيس كريم بطعم تحبه', text: 'استمتع بطعم الآيس كريم اللي بتحبه، مع خيار مناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.' },
+  { icon: '💜', title: 'مناسب لنظامك', text: 'اختيارات تناسب يومك في الدايت — للحظات اللي نفسك فيها بحاجة مختلفة من غير ما تحس إن الدايت ممل.' },
+  { icon: '🍫', title: 'كيتو بار عملي', text: 'سناك سريع بين الوجبات من Healthy & Tasty — تاخده معاك في الشغل، الجامعة أو الجيم.' },
+  { icon: '🚚', title: 'طلب سهل', text: 'ادخل بياناتك — فريق Healthy & Tasty هيتواصل سريعاً للتأكيد، والدفع عند الاستلام.' },
+]
+
+const egyptGovs = ['القاهرة', 'الجيزة', 'الإسكندرية']
+
+const faqs = [
+  { q: 'الآيس كريم فيه سكر؟', a: 'لا، آيس كريم Healthy & Tasty بدون سكر، ومناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.' },
+  { q: 'الكيتو بار مناسب للكيتو؟', a: 'أيوه، الـ Keto Bar مصمم ليناسب نظام الكيتو، وعملي كسناك بين الوجبات تاخده معاك في الشغل أو الجامعة أو الجيم.' },
+  { q: 'إيه العروض المتاحة؟', a: 'عرض الآيس كريم: 5 قطع بـ 300 جنيه + توصيل 50 جنيه. عرض الكيتو بار: 4 قطع بـ 250 جنيه والتوصيل مجاني.' },
+  { q: 'التوصيل بياخد قد إيه؟', a: 'فريق Healthy & Tasty بيتواصل سريعاً لتأكيد الطلب، والتوصيل يبدأ خلال ساعات بعد التأكيد.' },
+  { q: 'الدفع إزاي؟', a: 'الدفع عند الاستلام.' },
+  { q: 'أطلب إزاي؟', a: 'اختار العرض، أكمل بياناتك، وفريقنا هيتواصل معاك لتأكيد الطلب والتوصيل.' },
+]
+
+// سكريبت الطلبات الخاص بمشروع Healthy Icecream/Keto (شيت منفصل — deployed 29/09/2026)
+const ORDER_API_URL = 'https://script.google.com/macros/s/AKfycbxokXO5MPvhstfeE3Jnxroe1aGggf8FN7N8fu5qH6owTgXvYMoIJnJQmvDVBlNNCgw1sQ/exec'
+
+const getCookie = (name) => {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
+const getFbc = () => {
+  const existing = getCookie('_fbc')
+  if (existing) return existing
+  const fbclid = new URLSearchParams(window.location.search).get('fbclid')
+  return fbclid ? `fb.1.${Date.now()}.${fbclid}` : ''
+}
+
+// ─── TRUST & ORDER UI HELPERS ────────────────────────────────────────────────
+
+function OfferTrustPills() {
+  return (
+    <div className="trust-pills trust-pills--offers">
+      {offerTrustBadges.map((b) => (
+        <span key={b.label}>{b.icon} {b.label}</span>
+      ))}
+    </div>
+  )
+}
+
+function DeliveryHighlight({ compact = false }) {
+  return (
+    <p className={`delivery-highlight ${compact ? 'delivery-highlight--compact' : ''}`} role="note">
+      ⚡ {DELIVERY_HOURS_LABEL}
+    </p>
+  )
+}
+
+function OrderExpectationBox() {
+  return (
+    <div className="order-expectation" role="note">
+      <p><strong>بعد إرسال الطلب:</strong> فريق Healthy & Tasty هيتواصل معاك سريعاً لتأكيد الطلب.</p>
+      <p>التوصيل يبدأ مباشرة بعد التأكيد — ومعظم الطلبات تصل في نفس اليوم أو خلال ساعات حسب منطقتك.</p>
+    </div>
+  )
+}
+
+function OrderTotalBreakdown({ subtotal, shippingFee, total, originalTotal, saving }) {
+  const isFree = !shippingFee || shippingFee === 0
+  const showDiscount = originalTotal > total && saving > 0
+  return (
+    <div className="order-breakdown" aria-label="تفاصيل الإجمالي">
+      <div className="order-breakdown-row">
+        <span>الاوردر</span>
+        <span>{subtotal} ج.م</span>
+      </div>
+      <div className="order-breakdown-row">
+        <span>الشحن</span>
+        <span>{isFree ? 'مجاني 🚚' : `${shippingFee} ج.م`}</span>
+      </div>
+      <div className="order-breakdown-row order-breakdown-total">
+        <span>الإجمالي</span>
+        <div className="order-breakdown-total-val">
+          <strong>{total} ج.م</strong>
+          {showDiscount && <s>{originalTotal} ج.م</s>}
+        </div>
+      </div>
+      {showDiscount && (
+        <p className="order-breakdown-saving">وفرت {saving} ج.م</p>
+      )}
+      <p className="order-breakdown-note">{isFree ? 'التوصيل مجاني لطلبك 🎉' : SHIPPING_ONCE_LABEL}</p>
+      <DeliveryHighlight compact />
+    </div>
+  )
+}
+
+// ─── FLAVOR PICKER — vertical list with photos + counters ────────────────────
+// كل نكهة سطر: صورتها + اسمها + زرار +/−. الـ state الخارجي counts array.
+
+function FlavorPicker({ flavorNames, values, onChange, label, total, images, showHint = true }) {
+  const names = flavorNames ?? []
+  const vals = names.map((_, i) => values?.[i] ?? 0)
+  const distributed = vals.reduce((s, v) => s + v, 0)
+  const remaining = Math.max(0, total - distributed)
+
+  const setVal = (i, v) => {
+    const others = distributed - vals[i]
+    const clamped = Math.max(0, Math.min(v, total - others))
+    onChange(vals.map((x, idx) => (idx === i ? clamped : x)))
+  }
+
+  return (
+    <div className="flavor-section">
+      <div className="flavor-header">
+        <h3 className="flavor-title">{label || 'اختار النكهات'}</h3>
+        <span className="flavor-badge">{distributed}/{total} قطعة</span>
+      </div>
+      {showHint && (
+        <p className="flavor-hint">
+          دوس + على النكهات اللي تعجبك لحد ما تكمّل القطع
+          {remaining > 0 ? ` — فاضل ${remaining} ${remaining === 1 ? 'قطعة' : 'قطع'} 👆` : ' — تمام، كل القطع متختارة ✔'}
+        </p>
+      )}
+      <div className="flavor-rows">
+        {names.map((name, i) => (
+          <div key={name} className={`flavor-row ${vals[i] > 0 ? 'flavor-row--picked' : ''}`}>
+            {images?.[name] ? (
+              <img src={images[name]} alt={`نكهة ${name}`} className="flavor-row-img" loading="lazy" />
+            ) : (
+              <span className="flavor-row-emoji">{FLAVOR_EMOJI[name] ?? '😋'}</span>
+            )}
+            <span className="flavor-row-name">{name}</span>
+            <div className="flavor-counter">
+              <button type="button" className="fctr-btn" aria-label={`زيادة ${name}`} onClick={() => setVal(i, vals[i] + 1)} disabled={remaining === 0}>+</button>
+              <span className="fctr-val">{vals[i]}</span>
+              <button type="button" className="fctr-btn" aria-label={`تقليل ${name}`} onClick={() => setVal(i, vals[i] - 1)} disabled={vals[i] === 0}>−</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── ORDER FORM ───────────────────────────────────────────────────────────────
+
+function StepConfirm({ cartItems: initialItems, onBack }) {
+  const [items, setItems] = useState(initialItems)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [gov, setGov] = useState('')
+  const [address, setAddress] = useState('')
+  const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState('idle')
+  // purchaseSubmitLock prevents re-entry during the async submit.
+  // It is set to the eventId string (not just true) so we can detect
+  // if a second call arrives with the same or a different eventId.
+  const purchaseSubmitLock = useRef(false)
+  const [touched, setTouched] = useState({})
+  const [itemFlavors, setItemFlavors] = useState(() =>
+    initialItems.map(item =>
+      evenSplit(bundleUnits(item.bundle.id) * item.qty, item.bundle.flavors.length)
+    )
+  )
+
+  const removeItem = (i) => {
+    setItems(prev => prev.filter((_, idx) => idx !== i))
+    setItemFlavors(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  if (items.length === 0) {
+    onBack()
+    return null
+  }
+
+  const cartItems = items
+  const subtotal = calcItemsSubtotal(cartItems)
+  const shippingFee = calcShipping(cartItems)
+  const totalPrice = calcOrderTotal(cartItems)
+  const totalOriginal = calcOrderOriginalTotal(cartItems)
+  const totalSaving = totalOriginal - totalPrice
+
+  const touch = (field) => setTouched(t => ({ ...t, [field]: true }))
+
+  const errors = {
+    name: !name.trim() ? 'الاسم مطلوب' : '',
+    phone: !phone.trim() ? 'رقم الموبايل مطلوب' : !/^01[0-9]{9}$/.test(phone.trim()) ? 'رقم غير صحيح، مثال: 01XXXXXXXXX' : '',
+    gov: !gov ? 'اختر محافظتك' : '',
+    address: !address.trim() ? 'العنوان مطلوب' : address.trim().length < 10 ? 'اكتب العنوان بتفصيل أكتر' : '',
+  }
+
+  const buildOrderSummary = () =>
+    cartItems.map((item, i) => {
+      const summary = `${item.bundle.name} ×${item.qty} (${formatFlavorSummary(item.bundle.flavors, itemFlavors[i])})`
+      return summary
+    }).join(' | ')
+
+  const buildOfferSummary = () =>
+    cartItems.map((item) => `${item.bundle.name} ×${item.qty}`).join(' | ')
+
+  const handleSubmit = async () => {
+    // Guard 1: status-based lock (catches re-renders and rapid taps after completion)
+    if (status === 'sending' || status === 'done') return
+    // Guard 2: ref-based lock (catches rapid double-taps before state update propagates)
+    if (purchaseSubmitLock.current) return
+
+    setTouched({ name: true, phone: true, gov: true, address: true })
+    const currentErrors = {
+      name: !name.trim() ? 'الاسم مطلوب' : '',
+      phone: !phone.trim() ? 'رقم الموبايل مطلوب' : !/^01[0-9]{9}$/.test(phone.trim()) ? 'رقم غير صحيح، مثال: 01XXXXXXXXX' : '',
+      gov: !gov ? 'اختر محافظتك' : '',
+      address: !address.trim() ? 'العنوان مطلوب' : address.trim().length < 10 ? 'اكتب العنوان بتفصيل أكتر' : '',
+    }
+    const firstError = Object.keys(currentErrors).find(k => currentErrors[k])
+    if (firstError) {
+      document.getElementById(`field-${firstError}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
+    // Set lock BEFORE any async work — prevents all re-entry paths
+    purchaseSubmitLock.current = true
+    setStatus('sending')
+
+    try {
+      const orderSummary = buildOrderSummary()
+      const offerSummary = buildOfferSummary()
+
+      // Build purchase meta ONCE — this generates the single eventId shared by
+      // both the browser Pixel and the CAPI call. Never call buildPurchaseMeta()
+      // twice for the same order.
+      const purchaseMeta = buildPurchaseMeta({ value: totalPrice, contentName: offerSummary })
+      const { eventName, eventTime, eventId, eventParams } = purchaseMeta
+
+      // Debug log — verify value/currency/event_id before any network call
+      console.log('[Order] Purchase submit:', {
+        event_name: eventName,
+        event_id: eventId,
+        value: eventParams.value,
+        currency: eventParams.currency,
+        typeof_value: typeof eventParams.value,
+        totalPrice,
+      })
+
+      const orderPayload = new URLSearchParams({
+        name,
+        phone,
+        gov,
+        address,
+        notes: notes || '',
+        bundle: offerSummary,
+        subtotal: `${subtotal} ج.م`,
+        shippingFee: shippingFee === 0 ? 'مجاني' : `${shippingFee} ج.م`,
+        price: `${totalPrice} ج.م`,
+        value: String(totalPrice),          // plain number string — Apps Script parses with Number()
+        quantity: String(cartItems.reduce((s, i) => s + i.qty, 0)),
+        flavors: orderSummary,
+        productWeight: PRODUCT_SIZES_LABEL,
+        eventName,
+        eventTime: String(eventTime),
+        eventId,                            // same id sent to CAPI server-side
+        eventSourceUrl: window.location.href,
+        fbp: getCookie('_fbp'),
+        fbc: getFbc(),
+        userAgent: navigator.userAgent,
+      })
+
+      // ── CAPI (server-side) ────────────────────────────────────────────────
+      // Only send to sheet + CAPI once per session.
+      // Apps Script has its own capiAlreadySent() guard using CacheService,
+      // but we add a client-side guard here as a first line of defence.
+      if (!wasOrderPurchaseSent()) {
+        const orderUrl = `${ORDER_API_URL}?${orderPayload.toString()}`
+        fetch(orderUrl, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {})
+      }
+
+      // ── Browser Pixel ─────────────────────────────────────────────────────
+      // trackBrowserEventOnce uses its own sessionStorage key per (eventName+eventId)
+      // so it is safe to call even if wasOrderPurchaseSent() was already true.
+      // The eventID option MUST match the event_id sent to CAPI above.
+      trackBrowserEventOnce(eventName, eventParams, eventId)
+
+      // Mark order as sent — blocks CAPI re-send on any future submit attempt
+      markOrderPurchaseSent()
+
+      window.history.pushState({}, '', '/confirmation_order')
+      setStatus('done')
+    } catch (err) {
+      console.error('[Order] Submit error:', err)
+      setStatus('done')
+    }
+    // NOTE: purchaseSubmitLock is intentionally NOT released in finally.
+    // Once an order is submitted (success or error) the lock stays true
+    // for the lifetime of this component instance, preventing any retry
+    // from firing a second Purchase event. The status === 'done' guard
+    // also catches this, but the lock is a belt-and-suspenders safety net.
+  }
+
+  if (status === 'done') {
+    return (
+      <div className="step-screen">
+        <div className="order-success">
+          <div className="success-anim">
+            <div className="success-circle">
+              <svg viewBox="0 0 52 52" className="success-svg">
+                <circle cx="26" cy="26" r="25" fill="none" className="success-circle-bg" />
+                <path d="M14 27l8 8 16-16" fill="none" className="success-check" />
+              </svg>
+            </div>
+          </div>
+          <h2>تم تسجيل طلبك!</h2>
+          <p className="success-lead">سيتم التواصل معاك خلال وقت قصير لتأكيد الطلب.</p>
+          <p className="success-lead success-lead--accent">التوصيل يبدأ خلال ساعات بعد التأكيد — ومعظم الطلبات تصل في نفس اليوم حسب المنطقة.</p>
+          <DeliveryHighlight />
+          <div className="success-card">
+            <div className="success-card-row">
+              <span className="success-label">المنتج</span>
+              <span className="success-val">{PRODUCT_SIZES_LABEL}</span>
+            </div>
+            <div className="success-card-divider" />
+            {cartItems.map((item, i) => {
+              return (
+                <div key={i}>
+                  <div className="success-card-row">
+                    <span className="success-label">{item.bundle.name}</span>
+                    <span className="success-val">×{item.qty} — {item.bundle.price * item.qty} ج.م</span>
+                  </div>
+                  <div className="success-card-row">
+                    <span className="success-label">النكهات</span>
+                    <span className="success-val">{formatFlavorSummary(item.bundle.flavors, itemFlavors[i])}</span>
+                  </div>
+                  {i < cartItems.length - 1 && <div className="success-card-divider" />}
+                </div>
+              )
+            })}
+            <div className="success-card-divider" />
+            <div className="success-card-row">
+              <span className="success-label">المنتجات</span>
+              <span className="success-val">{subtotal} ج.م</span>
+            </div>
+            <div className="success-card-row">
+              <span className="success-label">الشحن (مرة واحدة)</span>
+              <span className="success-val">{shippingFee === 0 ? 'مجاني 🚚' : `${shippingFee} ج.م`}</span>
+            </div>
+            <div className="success-card-row">
+              <span className="success-label">الإجمالي</span>
+              <span className="success-val price">{totalPrice} ج.م</span>
+            </div>
+            <div className="success-card-divider" />
+            <div className="success-card-row">
+              <span className="success-label">الاسم</span>
+              <span className="success-val">{name}</span>
+            </div>
+            <div className="success-card-row">
+              <span className="success-label">الموبايل</span>
+              <span className="success-val">{phone}</span>
+            </div>
+            <div className="success-card-row">
+              <span className="success-label">المحافظة</span>
+              <span className="success-val">{gov}</span>
+            </div>
+          </div>
+        </div>
+
+        <button className="back-btn" style={{ marginTop: '12px' }} onClick={() => { window.history.pushState({}, '', '/'); onBack() }}>العودة للرئيسية</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="step-screen">
+      <div className="cart-summary-header">
+        <span className="cart-summary-title">🛒 ملخص طلبك</span>
+        <span className="cart-summary-total">{totalPrice} ج.م</span>
+      </div>
+
+      {cartItems.map((item, i) => (
+        <div key={i}>
+          <div className="confirm-summary" style={{ '--accent': item.bundle.accent }}>
+            <div className="confirm-img">
+              <img src={item.bundle.image} alt={`صورة ${item.bundle.name} في الطلب`} />
+            </div>
+            <div className="confirm-info">
+              <div className="confirm-info-top">
+                <h3>{item.bundle.name} {item.qty > 1 ? `× ${item.qty}` : ''}</h3>
+                <button className="remove-item-btn" onClick={() => removeItem(i)} title="إزالة من السلة">✕</button>
+              </div>
+              <p>{item.bundle.description}</p>
+              <div className="confirm-price">
+                <strong>{item.bundle.price * item.qty} ج.م</strong>
+                {item.bundle.originalPrice > item.bundle.price && (
+                  <s>{item.bundle.originalPrice * item.qty} ج.م</s>
+                )}
+              </div>
+              <div className="confirm-badges">
+                <span className={`confirm-badge ${item.bundle.freeShipping ? 'green' : 'gray'}`}>{item.bundle.freeShipping ? '🚚 توصيل مجاني' : '🚚 التوصيل 50 ج'}</span>
+                <span className="confirm-badge green">{item.bundle.unitsLabel} · اختار نكهاتك</span>
+              </div>
+            </div>
+          </div>
+          <FlavorPicker
+            flavorNames={item.bundle.flavors}
+            values={itemFlavors[i]}
+            total={bundleUnits(item.bundle.id) * item.qty}
+            images={bundleImages(item.bundle.id)}
+            onChange={(v) => setItemFlavors(prev => prev.map((x, idx) => idx === i ? v : x))}
+          />
+        </div>
+      ))}
+
+      <OrderTotalBreakdown
+        subtotal={subtotal}
+        shippingFee={shippingFee}
+        total={totalPrice}
+        originalTotal={totalOriginal}
+        saving={totalSaving}
+      />
+      <div className="form-section">
+        <h2>بيانات التوصيل</h2>
+        <div className="form-card">
+          <div id="field-name" className={`field ${touched.name && errors.name ? 'field-error' : touched.name && !errors.name ? 'field-ok' : ''}`}>
+            <label>الاسم <span className="req">*</span></label>
+            <input value={name} onChange={e => setName(e.target.value)} onBlur={() => touch('name')} placeholder="اكتب اسمك الكامل" />
+            {touched.name && errors.name && <p className="field-msg error">{errors.name}</p>}
+          </div>
+          <div id="field-phone" className={`field ${touched.phone && errors.phone ? 'field-error' : touched.phone && !errors.phone ? 'field-ok' : ''}`}>
+            <label>رقم الموبايل <span className="req">*</span></label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => touch('phone')} placeholder="01XXXXXXXXX" type="tel" inputMode="numeric" maxLength={11} />
+            {touched.phone && errors.phone && <p className="field-msg error">{errors.phone}</p>}
+          </div>
+          <div id="field-gov" className={`field ${touched.gov && errors.gov ? 'field-error' : touched.gov && !errors.gov ? 'field-ok' : ''}`}>
+            <label>المحافظة <span className="req">*</span></label>
+            <select value={gov} onChange={e => setGov(e.target.value)} onBlur={() => touch('gov')} className="select-field">
+              <option value="">اختر محافظتك</option>
+              {egyptGovs.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+            {touched.gov && errors.gov && <p className="field-msg error">{errors.gov}</p>}
+          </div>
+          <div id="field-address" className={`field ${touched.address && errors.address ? 'field-error' : touched.address && !errors.address ? 'field-ok' : ''}`}>
+            <label>العنوان بالتفصيل <span className="req">*</span></label>
+            <textarea value={address} onChange={e => setAddress(e.target.value)} onBlur={() => touch('address')} placeholder="المدينة / الشارع / رقم المنزل / أي تفاصيل تساعد في التوصيل" rows={3} />
+            {touched.address && errors.address && <p className="field-msg error">{errors.address}</p>}
+          </div>
+          <div className="field">
+            <label>ملاحظات <span className="opt">(اختياري)</span></label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="أي ملاحظات إضافية على الطلب" rows={2} />
+          </div>
+        </div>
+      </div>
+
+      <button className="confirm-order-btn" onClick={handleSubmit} disabled={status === 'sending'}>
+        {status === 'sending' ? '⏳ جاري تسجيل الطلب…' : `تأكيد الطلب • ${totalPrice} ج.م`}
+      </button>
+      <button className="back-btn" onClick={onBack}>رجوع</button>
+    </div>
+  )
+}
+
+// ─── LANDING (SCROLL PAGE) ───────────────────────────────────────────────────
+
+function Landing({ onConfirm }) {
+  const [openFaq, setOpenFaq] = useState(null)
+  const [cart, setCart] = useState({})
+  // Prevents AddToCart from firing twice if both checkout buttons are tapped
+  // rapidly, or if onConfirm is called before the flow state transitions.
+  const checkoutLock = useRef(false)
+
+  const cartCount = Object.values(cart).reduce((s, q) => s + q, 0)
+  const cartItems = bundles
+    .filter(b => (cart[b.id] || 0) > 0)
+    .map(b => ({ bundle: b, qty: cart[b.id] }))
+  const cartCheckoutTotal = calcOrderTotal(cartItems)
+  const cartShipping = calcShipping(cartItems)
+
+  const addToCart = (bundleId) => setCart(c => ({ ...c, [bundleId]: (c[bundleId] || 0) + 1 }))
+  const setQty = (bundleId, val) => {
+    if (val <= 0) {
+      setCart(c => { const n = { ...c }; delete n[bundleId]; return n })
+    } else {
+      setCart(c => ({ ...c, [bundleId]: val }))
+    }
+  }
+
+  const handleCheckout = () => {
+    if (checkoutLock.current) return
+    const items = bundles
+      .filter(b => (cart[b.id] || 0) > 0)
+      .map(b => ({ bundle: b, qty: cart[b.id] }))
+    if (items.length === 0) return
+    checkoutLock.current = true
+    onConfirm(items)
+  }
+
+  const scrollToBundles = () => document.getElementById('bundles-section')?.scrollIntoView({ behavior: 'smooth' })
+
+  return (
+    <div className={`landing ${cartCount > 0 ? 'landing--has-cart' : 'landing--sticky-cta'}`}>
+
+      {/* STICKY CART BAR */}
+      {cartCount > 0 && (
+        <div className="sticky-cart-bar">
+          <div className="sticky-cart-items">
+            {bundles.filter(b => (cart[b.id] || 0) > 0).map(b => (
+              <span key={b.id} className="sticky-cart-chip" style={{ '--accent': b.accent }}>
+                {b.name} ×{cart[b.id]}
+              </span>
+            ))}
+          </div>
+          <button className="sticky-cart-btn" onClick={handleCheckout}>
+            أكمل الطلب — {cartCheckoutTotal} ج.م {cartShipping === 0 ? '· توصيل مجاني 🚚' : '· شامل التوصيل'} ←
+          </button>
+        </div>
+      )}
+
+      <div className="promo-bar">
+        <span>💳 الدفع عند الاستلام</span>
+        <span className="promo-dot">•</span>
+        <span>⚡ التوصيل خلال ساعات من تأكيد الطلب</span>
+        <span className="promo-dot">•</span>
+        <span>بدون سكر 🤍</span>
+      </div>
+
+      <header className="topbar">
+        <img src={logo} alt="Healthy & Tasty" className="topbar-logo" />
+        <nav className="topbar-nav" aria-label="أقسام الصفحة">
+          <a href="#bundles-section">العروض</a>
+          <a href="#benefits-section">ليه Healthy &amp; Tasty</a>
+          <a href="#faq">الأسئلة الشائعة</a>
+        </nav>
+        <div className="topbar-actions">
+          <button type="button" className="topbar-cta" onClick={scrollToBundles}>
+            اطلب الآن 🛒
+          </button>
+        </div>
+      </header>
+
+      <section className="hero hero-v3">
+        <div className="hero-v3-text">
+          <p className="eyebrow-pill">Healthy &amp; Tasty • بدون سكر 🤍</p>
+          <h1>
+            نفسك في حاجة حلوة…
+            <span> من غير ما تبوّظ الدايت؟</span>
+          </h1>
+          <p className="hero-sub">
+            آيس كريم بدون سكر بـ 8 نكهات، وكيتو بار مشبّع بـ 5 نكهات —
+            اختار نكهاتك بنفسك، وادفع عند الاستلام.
+          </p>
+
+          <div className="perks-wrap">
+            {heroPerks.map((f) => (
+              <span className="perk" key={f.label}>
+                <CheckCircle2 size={16} /> {f.label}
+              </span>
+            ))}
+          </div>
+          <div className="hero-btns">
+            <button type="button" className="primary-btn" onClick={scrollToBundles}>
+              🛒 اطلب عرضك دلوقتي
+            </button>
+          </div>
+          <DeliveryHighlight />
+        </div>
+
+        <div className="hero-v3-visual" aria-label="تشكيلة منتجات Healthy and Tasty">
+          <div className="hero-blob hero-blob--berry" aria-hidden="true" />
+          <div className="hero-blob hero-blob--mint" aria-hidden="true" />
+          <div className="hero-stage">
+            <img src={iceVanilla} alt="آيس كريم فانيليا بدون سكر" className="hero-main-img" />
+            <span className="hero-float-tag hero-float-tag--pink">🍨 8 نكهات آيس كريم</span>
+            <span className="hero-float-tag hero-float-tag--green">🍫 5 نكهات كيتو بار</span>
+            <span className="hero-float-tag hero-float-tag--white">بدون سكر ✓</span>
+            <img src={iceStrawberry} alt="آيس كريم فراولة" className="hero-orbit hero-orbit--1" loading="lazy" />
+            <img src={icePistachio} alt="آيس كريم فسدق" className="hero-orbit hero-orbit--2" loading="lazy" />
+            <img src={iceChocolate} alt="آيس كريم شوكولاتة" className="hero-orbit hero-orbit--3" loading="lazy" />
+            <img src={heroKetobarImg} alt="كيتو بار دبل شوكولاتة" className="hero-orbit hero-orbit--4" loading="lazy" />
+            <img src={ketoPeanut} alt="كيتو بار زبدة فول سوداني" className="hero-orbit hero-orbit--5" loading="lazy" />
+            <img src={iceBlueberry} alt="آيس كريم بلوبيري" className="hero-orbit hero-orbit--6" loading="lazy" />
+          </div>
+          <div className="hero-proof-chip">
+            <span>🍨 8 نكهات آيس كريم + 🍫 5 نكهات كيتو بار</span>
+            <small>اختار النكهات بنفسك عند الطلب</small>
+          </div>
+        </div>
+
+        <div className="hero-marquee" aria-label="كل النكهات المتاحة">
+          <div className="hero-marquee-track">
+            {[...heroMarqueeItems, ...heroMarqueeItems].map((m, i) => (
+              <span key={i} className="hero-marquee-item">
+                <img src={m.img} alt={`نكهة ${m.name}`} loading="lazy" />
+                <em>{m.name}</em>
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section dark-section" id="bundles-section">
+        <div className="section-head light">
+          <p className="eyebrow-pill light">عرضان فقط 👇 اختار اللي يناسبك</p>
+          <h2>الباقة المناسبة ليك</h2>
+          <p>الدفع عند الاستلام 💳 · 🍨 الآيس كريم توصيله 50 ج · 🍫 الكيتو بار توصيله مجاني</p>
+          <DeliveryHighlight compact />
+        </div>
+        <div className="bundle-list">
+          {bundles.map((bundle) => {
+            const qty = cart[bundle.id] || 0
+            const inCart = qty > 0
+            const selectBundle = () => {
+              if (!inCart) addToCart(bundle.id)
+            }
+
+            return (
+              <div
+                key={bundle.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={inCart}
+                aria-label={`${bundle.name}${inCart ? ' — مختار في السلة' : ' — اضغط لاختيار العرض'}`}
+                className={`bundle-row bundle-row-${bundle.id} ${inCart ? 'selected' : ''}`}
+                style={{ '--accent': bundle.accent }}
+                onClick={selectBundle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    selectBundle()
+                  }
+                }}
+              >
+                {inCart && <div className="selected-check">✓</div>}
+                {bundle.badge && <div className="bundle-row-badge">{bundle.badge}</div>}
+                <div className="bundle-row-img">
+                  <img src={bundle.image} alt={`صورة ${bundle.name} — Healthy & Tasty`} loading="lazy" />
+                </div>
+                <div className="bundle-row-info">
+                  <h3>{bundle.name} · {bundle.unitsLabel}</h3>
+                  <p>{bundle.description}</p>
+                  {bundle.note && <p className="bundle-row-note">{bundle.note}</p>}
+                  <p className={`delivery-tag ${bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
+                    {bundle.deliveryNote || (bundle.freeShipping ? '🚚 التوصيل مجاني' : '🚚 التوصيل 50 جنيه')}
+                  </p>
+                  <div className="bundle-row-price">
+                    <strong>{bundle.price * Math.max(qty, 1)} ج.م</strong>
+                    {bundle.originalPrice > bundle.price && (
+                      <>
+                        <s>{bundle.originalPrice * Math.max(qty, 1)} ج.م</s>
+                        <span className="saving-tag">وفر {bundle.saving * Math.max(qty, 1)} ج.م</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="bundle-row-actions" onClick={e => e.stopPropagation()}>
+                    {inCart ? (
+                      <div className="bundle-qty">
+                        <button type="button" className="qty-btn" aria-label="تقليل الكمية" onClick={() => setQty(bundle.id, qty - 1)}>−</button>
+                        <span className="qty-val">{qty}</span>
+                        <button type="button" className="qty-btn" aria-label="زيادة الكمية" onClick={() => setQty(bundle.id, qty + 1)}>+</button>
+                      </div>
+                    ) : (
+                      <button type="button" className="add-to-cart-btn" onClick={() => addToCart(bundle.id)}>
+                        🛒 أضف للسلة
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <OfferTrustPills />
+        {cartCount > 0 && (
+          <button type="button" className="next-btn landing-next-btn" onClick={handleCheckout}>
+            أكمل الطلب ({cartCount} {cartCount === 1 ? 'عرض' : 'عروض'} — {cartCheckoutTotal} ج.م {cartShipping === 0 ? '· التوصيل مجاني 🚚' : '· شامل التوصيل'}) ←
+          </button>
+        )}
+      </section>
+
+      <section className="section" id="benefits-section">
+        <div className="section-head">
+          <p className="eyebrow-pill">ليه Healthy & Tasty؟</p>
+          <h2>اختيارات تناسب نظامك خلال اليوم</h2>
+          <p>آيس كريم · كيتو بار — بدون سكر، مناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.</p>
+        </div>
+        <div className="benefit-grid">
+          {benefitCards.map((b) => (
+            <div className="benefit-card" key={b.title}>
+              <span className="benefit-icon">{b.icon}</span>
+              <h3>{b.title}</h3>
+              <p>{b.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section dark-section">
+        <div className="section-head light">
+          <p className="eyebrow-pill light">الطلب بسيط</p>
+          <h2>3 خطوات وتستلم عرضك</h2>
+        </div>
+        <div className="steps-grid">
+          {[
+            { n: '1', title: 'اختار العرض', text: 'حدد الباقة المناسبة ليك واختار النكهات بسهولة.' },
+            { n: '2', title: 'ادخل بياناتك', text: 'اسمك وعنوانك — فريق Healthy & Tasty هيتواصل سريعاً للتأكيد.' },
+            { n: '3', title: 'استلم خلال ساعات', text: 'التوصيل يبدأ بعد التأكيد — ومعظم الطلبات تصل في نفس اليوم حسب المنطقة.' },
+          ].map((s) => (
+            <div className="step-card" key={s.n}>
+              <span className="step-num">{s.n}</span>
+              <div className="step-card-text">
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section" id="faq">
+        <div className="section-head">
+          <p className="eyebrow-pill">الأسئلة الشائعة</p>
+          <h2>كل اللي محتاج تعرفه قبل الطلب</h2>
+        </div>
+        <div className="faq-list">
+          {faqs.map((item, i) => (
+            <div className={`faq-item ${openFaq === i ? 'open' : ''}`} key={i}>
+              <button
+                type="button"
+                className="faq-q"
+                aria-expanded={openFaq === i}
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              >
+                <span>{item.q}</span>
+                <span className="faq-arrow" aria-hidden="true">{openFaq === i ? '▲' : '▼'}</span>
+              </button>
+              {openFaq === i && <p className="faq-a">{item.a}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {cartCount === 0 && (
+        <button type="button" className="sticky-cta" onClick={scrollToBundles}>
+          🛒 اطلب الآن — {DELIVERY_HOURS_LABEL}
+        </button>
+      )}
+
+      <footer className="footer">
+        <img src={logo} alt="شعار Healthy and Tasty" className="footer-logo" />
+        <div className="footer-links">
+          <a href="tel:+201100863802"><Phone size={16} /> اتصال</a>
+          <a href="mailto:care@healthyandtasty.store"><Mail size={16} /> إيميل</a>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+
+function App() {
+  const [flow, setFlow] = useState('landing')
+  const [cartItems, setCartItems] = useState([])
+  // Prevents AddToCart pixel from firing more than once per page session
+  const addToCartSentRef = useRef(false)
+
+  if (flow === 'landing') {
+    return (
+      <Landing
+        onConfirm={(items) => {
+          setCartItems(items)
+          setFlow('form')
+          window.scrollTo({ top: 0, behavior: 'instant' })
+          window.history.pushState({}, '', '/add_to_cart')
+
+          // Fire AddToCart pixel exactly once per session
+          if (!addToCartSentRef.current) {
+            addToCartSentRef.current = true
+            const addToCartValue = calcOrderTotal(items)
+            const addToCartEventId = createMetaEventId('addtocart')
+            console.log('[MetaPixel] AddToCart:', {
+              value: addToCartValue,
+              currency: 'EGP',
+              event_id: addToCartEventId,
+            })
+            trackBrowserEventOnce(
+              'AddToCart',
+              {
+                value: addToCartValue,
+                currency: 'EGP',
+                content_type: 'product',
+              },
+              addToCartEventId,
+            )
+          }
+        }}
+      />
+    )
+  }
+
+  return (
+    <main className="funnel" dir="rtl" lang="ar">
+      <div className="funnel-header">
+        <button type="button" className="funnel-back-btn" onClick={() => { setFlow('landing'); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
+          &#8594; رجوع
+        </button>
+        <img src={logo} alt="Healthy &amp; Tasty" className="topbar-logo" />
+      </div>
+      <StepConfirm
+        cartItems={cartItems}
+        onBack={() => { setFlow('landing'); window.history.pushState({}, '', '/'); window.scrollTo({ top: 0, behavior: 'instant' }) }}
+      />
+    </main>
+  )
+}
+
+export default App
