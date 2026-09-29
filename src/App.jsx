@@ -142,6 +142,17 @@ const evenSplit = (total, n) => {
 const formatFlavorSummary = (names, values) =>
   names.map((n, i) => (values?.[i] > 0 ? `${values[i]} ${n}` : '')).filter(Boolean).join(' + ') || 'بدون تحديد'
 
+/** مسودة الفورم في sessionStorage — عشان الرجوع من التأكيد يرجع ببياناته */
+const draftSig = (list) => JSON.stringify((list || []).map((i) => ({ id: i.bundle.id, qty: i.qty })))
+
+const loadFormDraft = (list) => {
+  try {
+    const d = JSON.parse(sessionStorage.getItem('hc_form_draft'))
+    if (d && d.sig === draftSig(list)) return d
+  } catch { /* ignore */ }
+  return null
+}
+
 /** Hero — صياغة نهائية من المستخدم */
 const heroPerks = [
   {label: 'بدون سكر' },
@@ -280,22 +291,37 @@ function FlavorPicker({ flavorNames, values, onChange, label, total, images, sho
 
 function StepConfirm({ cartItems: initialItems, onBack }) {
   const [items, setItems] = useState(initialItems)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [gov, setGov] = useState('')
-  const [address, setAddress] = useState('')
-  const [notes, setNotes] = useState('')
+  // لو راجع من التأكيد (back) — رجّع مسودته بدل ما يبدأ من الصفر
+  const savedDraft = loadFormDraft(initialItems)
+  const [name, setName] = useState(savedDraft?.name ?? '')
+  const [phone, setPhone] = useState(savedDraft?.phone ?? '')
+  const [gov, setGov] = useState(savedDraft?.gov ?? '')
+  const [address, setAddress] = useState(savedDraft?.address ?? '')
+  const [notes, setNotes] = useState(savedDraft?.notes ?? '')
   const [status, setStatus] = useState('idle')
   // purchaseSubmitLock prevents re-entry during the async submit.
   // It is set to the eventId string (not just true) so we can detect
   // if a second call arrives with the same or a different eventId.
   const purchaseSubmitLock = useRef(false)
   const [touched, setTouched] = useState({})
-  const [itemFlavors, setItemFlavors] = useState(() =>
-    initialItems.map(item =>
+  const [itemFlavors, setItemFlavors] = useState(() => {
+    if (savedDraft && Array.isArray(savedDraft.itemFlavors) && savedDraft.itemFlavors.length === initialItems.length) {
+      return savedDraft.itemFlavors
+    }
+    return initialItems.map(item =>
       evenSplit(bundleUnits(item.bundle.id) * item.qty, item.bundle.flavors.length)
     )
-  )
+  })
+
+  // احفظ مسودة أول بأول — الرجوع من التأكيد أو الـ refresh يرجع ببياناته
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('hc_form_draft', JSON.stringify({
+        sig: draftSig(items),
+        itemFlavors, name, phone, gov, address, notes,
+      }))
+    } catch { /* ignore */ }
+  }, [items, itemFlavors, name, phone, gov, address, notes])
 
   const removeItem = (i) => {
     setItems(prev => prev.filter((_, idx) => idx !== i))
@@ -912,16 +938,75 @@ function App() {
   // Prevents AddToCart pixel from firing more than once per page session
   const addToCartSentRef = useRef(false)
 
-  // Refresh على رابط خطوة (/confirmation_order) يرجع للرئيسية + زرار الرجوع يرجع للاندنج
+  // مرجع للسلة عشان الـ popstate يشوفها من غير ما يعيد الاشتراك
+  const cartRef = useRef(cartItems)
+  cartRef.current = cartItems
+
+  const persistCart = (list) => {
+    try {
+      sessionStorage.setItem('hc_cart', JSON.stringify(list.map((i) => ({ id: i.bundle.id, qty: i.qty }))))
+    } catch { /* ignore */ }
+  }
+
+  const clearDrafts = () => {
+    try {
+      sessionStorage.removeItem('hc_cart')
+      sessionStorage.removeItem('hc_form_draft')
+    } catch { /* ignore */ }
+  }
+
+  const goHome = () => {
+    clearDrafts()
+    setFlow('landing')
+    window.history.pushState({}, '', '/')
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  // Refresh على رابط خطوة يرجّع السلة + الرجوع/التقدم يمشي مع الخطوات والعنوان
   useEffect(() => {
-    if (window.location.pathname !== '/') {
-      window.history.replaceState({}, '', '/')
+    const restoreCart = () => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('hc_cart'))
+        if (Array.isArray(saved) && saved.length) {
+          const restored = saved
+            .map((s) => {
+              const b = bundles.find((x) => x.id === s.id)
+              return b ? { bundle: b, qty: Math.max(1, s.qty | 0) } : null
+            })
+            .filter(Boolean)
+          if (restored.length) return restored
+        }
+      } catch { /* ignore */ }
+      return null
     }
-    const onPop = () => {
-      setFlow('landing')
-      setCartItems([])
-      if (window.location.pathname !== '/') {
+
+    const path = window.location.pathname
+    if (path === '/add_to_cart' || path === '/confirmation_order') {
+      const restored = restoreCart()
+      if (restored) {
+        setCartItems(restored)
+        setFlow('form')
+        // شاشة النجاح نفسها مش بتتخزن — ارجع لخطوة السلة ببياناتها
+        if (path === '/confirmation_order') {
+          window.history.replaceState({}, '', '/add_to_cart')
+        }
+      } else {
         window.history.replaceState({}, '', '/')
+      }
+    }
+
+    const onPop = () => {
+      const p = window.location.pathname
+      if ((p === '/add_to_cart' || p === '/confirmation_order') && cartRef.current.length > 0) {
+        // راجع من التأكيد → ارجع لصفحة السلة (مش الهوم) ببياناتها المحفوظة
+        setFlow('form')
+        window.scrollTo({ top: 0 })
+        if (p === '/confirmation_order') {
+          window.history.replaceState({}, '', '/add_to_cart')
+        }
+      } else {
+        setFlow('landing')
+        if (p !== '/') window.history.replaceState({}, '', '/')
       }
     }
     window.addEventListener('popstate', onPop)
@@ -933,6 +1018,7 @@ function App() {
       <Landing
         onConfirm={(items) => {
           setCartItems(items)
+          persistCart(items)
           setFlow('form')
           window.scrollTo({ top: 0, behavior: 'instant' })
           window.history.pushState({}, '', '/add_to_cart')
@@ -965,14 +1051,14 @@ function App() {
   return (
     <main className="funnel" dir="rtl" lang="ar">
       <div className="funnel-header">
-        <button type="button" className="funnel-back-btn" onClick={() => { setFlow('landing'); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
+        <button type="button" className="funnel-back-btn" onClick={goHome}>
           &#8594; رجوع
         </button>
         <img src={logo} alt="Healthy &amp; Tasty" className="topbar-logo" />
       </div>
       <StepConfirm
         cartItems={cartItems}
-        onBack={() => { setFlow('landing'); window.history.pushState({}, '', '/'); window.scrollTo({ top: 0, behavior: 'instant' }) }}
+        onBack={goHome}
       />
     </main>
   )
