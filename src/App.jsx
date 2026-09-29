@@ -1,5 +1,5 @@
 ﻿import { useState, useRef } from 'react'
-import { buildPurchaseMeta, createMetaEventId, markOrderPurchaseSent, trackBrowserEventOnce, wasOrderPurchaseSent } from './metaTracking'
+import { buildPurchaseMeta, createMetaEventId, trackBrowserEventOnce } from './metaTracking'
 import { CheckCircle2, Phone, Mail } from 'lucide-react'
 import logo from './assets/logo.png'
 import heroIcecreamImg from './assets/icecream-vanilla.jpeg'
@@ -396,23 +396,20 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         userAgent: navigator.userAgent,
       })
 
-      // ── CAPI (server-side) ────────────────────────────────────────────────
-      // Only send to sheet + CAPI once per session.
-      // Apps Script has its own capiAlreadySent() guard using CacheService,
-      // but we add a client-side guard here as a first line of defence.
-      if (!wasOrderPurchaseSent()) {
-        const orderUrl = `${ORDER_API_URL}?${orderPayload.toString()}`
-        fetch(orderUrl, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {})
-      }
+      // ── Sheet + CAPI (server-side) ──────────────────────────────────────────
+      // كل طلب مؤكد لازم يتبعت — حتى لو اتعمل طلب قبل كده في نفس الجلسة
+      // (العميل ممكن يطلب أكتر من مرة). منع التكرار لنفس الطلب مضمون بـ:
+      // 1) purchaseSubmitLock + status guards (ضد الدوس المزدوج)
+      // 2) eventId فريد لكل طلب + capiAlreadySent() في السكريبت (ضد تكرار CAPI)
+      // 3) trackBrowserEventOnce (ضد تكرار البكسل)
+      const orderUrl = `${ORDER_API_URL}?${orderPayload.toString()}`
+      fetch(orderUrl, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {})
 
       // ── Browser Pixel ─────────────────────────────────────────────────────
       // trackBrowserEventOnce uses its own sessionStorage key per (eventName+eventId)
-      // so it is safe to call even if wasOrderPurchaseSent() was already true.
+      // so it is safe to call even if this component re-renders.
       // The eventID option MUST match the event_id sent to CAPI above.
       trackBrowserEventOnce(eventName, eventParams, eventId)
-
-      // Mark order as sent — blocks CAPI re-send on any future submit attempt
-      markOrderPurchaseSent()
 
       window.history.pushState({}, '', '/confirmation_order')
       setStatus('done')
