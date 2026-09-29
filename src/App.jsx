@@ -34,9 +34,6 @@ const ICECREAM_FLAVORS = ['فانيليا', 'شوكولاتة', 'فراولة', 
 const KETO_BAR_FLAVORS = ['بندق', 'زبدة فول سوداني', 'دبل شوكولاتة', 'جوز هند', 'لوز']
 
 const DELIVERY_FEE = 50
-const SHIPPING_ONCE_LABEL = 'الشحن يُحسب مرة واحدة فقط للطلب'
-const ICECREAM_SHIPPING_LABEL = 'التوصيل 50 ج'
-const KETOBAR_SHIPPING_LABEL = 'التوصيل مجاني 🚚'
 const DELIVERY_HOURS_LABEL = 'التوصيل خلال ساعات من تأكيد الطلب'
 
 /** ثقة الشراء — تظهر مرة واحدة أسفل العروض فقط */
@@ -45,12 +42,9 @@ const offerTrustBadges = [
   { icon: '📞', label: 'تأكيد الطلب سريع' },
 ]
 
-// الشحن مجاني لجميع العروض حالياً — البنية تدعم شحن مدفوع لعروض مستقبلية عبر freeShipping.
+// الشحن يُحسب مرة واحدة فقط للطلب — الكيتو بار مجاني، الآيس كريم 50 ج.
 const calcItemsSubtotal = (items) =>
   items.reduce((sum, item) => sum + item.bundle.price * item.qty, 0)
-
-const calcItemsOriginalSubtotal = (items) =>
-  items.reduce((sum, item) => sum + item.bundle.originalPrice * item.qty, 0)
 
 const calcShipping = (items) => {
   if (items.length === 0) return 0
@@ -60,8 +54,6 @@ const calcShipping = (items) => {
 
 /** total = مجموع المنتجات + شحن واحد فقط (أو مجاني) */
 const calcOrderTotal = (items) => calcItemsSubtotal(items) + calcShipping(items)
-
-const calcOrderOriginalTotal = (items) => calcItemsOriginalSubtotal(items) + calcShipping(items)
 
 // العرضان النهائيان فقط — بدون ميكس
 const bundles = [
@@ -236,35 +228,6 @@ function OrderExpectationBox() {
   )
 }
 
-function OrderTotalBreakdown({ subtotal, shippingFee, total, originalTotal, saving }) {
-  const isFree = !shippingFee || shippingFee === 0
-  const showDiscount = originalTotal > total && saving > 0
-  return (
-    <div className="order-breakdown" aria-label="تفاصيل الإجمالي">
-      <div className="order-breakdown-row">
-        <span>الاوردر</span>
-        <span>{subtotal} ج.م</span>
-      </div>
-      <div className="order-breakdown-row">
-        <span>الشحن</span>
-        <span>{isFree ? 'مجاني 🚚' : `${shippingFee} ج.م`}</span>
-      </div>
-      <div className="order-breakdown-row order-breakdown-total">
-        <span>الإجمالي</span>
-        <div className="order-breakdown-total-val">
-          <strong>{total} ج.م</strong>
-          {showDiscount && <s>{originalTotal} ج.م</s>}
-        </div>
-      </div>
-      {showDiscount && (
-        <p className="order-breakdown-saving">وفرت {saving} ج.م</p>
-      )}
-      <p className="order-breakdown-note">{isFree ? 'التوصيل مجاني لطلبك 🎉' : SHIPPING_ONCE_LABEL}</p>
-      <DeliveryHighlight compact />
-    </div>
-  )
-}
-
 // ─── FLAVOR PICKER — vertical list with photos + counters ────────────────────
 // كل نكهة سطر: صورتها + اسمها + زرار +/−. الـ state الخارجي counts array.
 
@@ -348,8 +311,6 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
   const subtotal = calcItemsSubtotal(cartItems)
   const shippingFee = calcShipping(cartItems)
   const totalPrice = calcOrderTotal(cartItems)
-  const totalOriginal = calcOrderOriginalTotal(cartItems)
-  const totalSaving = totalOriginal - totalPrice
 
   const touch = (field) => setTouched(t => ({ ...t, [field]: true }))
 
@@ -545,27 +506,24 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       </div>
 
       {cartItems.map((item, i) => (
-        <div key={i}>
-          <div className="confirm-summary" style={{ '--accent': item.bundle.accent }}>
+        <div key={i} className="order-offer-block">
+          {cartItems.length > 1 && (
+            <h3 className="offer-index">العرض {i === 0 ? 'الأول' : 'الثاني'}</h3>
+          )}
+          <div className="confirm-summary">
+            <button className="remove-item-btn" onClick={() => removeItem(i)} title="إزالة من السلة">✕</button>
             <div className="confirm-img">
               <img src={item.bundle.image} alt={`صورة ${item.bundle.name} في الطلب`} />
             </div>
             <div className="confirm-info">
-              <div className="confirm-info-top">
-                <h3>{item.bundle.name} {item.qty > 1 ? `× ${item.qty}` : ''}</h3>
-                <button className="remove-item-btn" onClick={() => removeItem(i)} title="إزالة من السلة">✕</button>
-              </div>
-              <p>{item.bundle.description}</p>
+              <h3>{item.bundle.name} · {item.bundle.unitsLabel}{item.qty > 1 ? ` × ${item.qty}` : ''}</h3>
               <div className="confirm-price">
                 <strong>{item.bundle.price * item.qty} ج.م</strong>
                 {item.bundle.originalPrice > item.bundle.price && (
                   <s>{item.bundle.originalPrice * item.qty} ج.م</s>
                 )}
               </div>
-              <div className="confirm-badges">
-                <span className={`confirm-badge ${item.bundle.freeShipping ? 'green' : 'gray'}`}>{item.bundle.freeShipping ? '🚚 توصيل مجاني' : '🚚 التوصيل 50 ج'}</span>
-                <span className="confirm-badge green">{item.bundle.unitsLabel} · اختار نكهاتك</span>
-              </div>
+              <span className="confirm-shipping">{item.bundle.freeShipping ? '🚚 توصيل مجاني' : '🚚 التوصيل 50 ج'}</span>
             </div>
           </div>
           <FlavorPicker
@@ -578,16 +536,14 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         </div>
       ))}
 
-      <OrderTotalBreakdown
-        subtotal={subtotal}
-        shippingFee={shippingFee}
-        total={totalPrice}
-        originalTotal={totalOriginal}
-        saving={totalSaving}
-      />
+      <div className="order-total-slim">
+        <span>الإجمالي {shippingFee === 0 ? '· توصيل مجاني 🚚' : '· شامل الشحن'}</span>
+        <strong>{totalPrice} ج.م</strong>
+      </div>
       <div className="form-section">
         <h2>بيانات التوصيل</h2>
         <div className="form-card">
+          <div className="field-row">
           <div id="field-name" className={`field ${touched.name && errors.name ? 'field-error' : touched.name && !errors.name ? 'field-ok' : ''}`}>
             <label>الاسم <span className="req">*</span></label>
             <input value={name} onChange={e => setName(e.target.value)} onBlur={() => touch('name')} placeholder="اكتب اسمك الكامل" />
@@ -597,6 +553,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
             <label>رقم الموبايل <span className="req">*</span></label>
             <input value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => touch('phone')} placeholder="01XXXXXXXXX" type="tel" inputMode="numeric" maxLength={11} />
             {touched.phone && errors.phone && <p className="field-msg error">{errors.phone}</p>}
+          </div>
           </div>
           <div id="field-gov" className={`field ${touched.gov && errors.gov ? 'field-error' : touched.gov && !errors.gov ? 'field-ok' : ''}`}>
             <label>المحافظة <span className="req">*</span></label>
