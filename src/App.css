@@ -13,8 +13,8 @@
   --cola-red: #E63946;
   --cola-dark: #1A1A2E;
   --cola-mid: #16213E;
-  --cola-purple: #5B2D8E;
-  --cola-purple-dark: #4A2170;
+  --cola-purple: #4A1E7E;
+  --cola-purple-dark: #351158;
   --cola-purple-light: #EC4899;
   --cola-green: #22C55E;
   --cola-gold: #F4A261;
@@ -138,7 +138,7 @@ body {
 }
 
 .topbar-cta {
-  background: #4A2170;
+  background: #351158;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -155,7 +155,7 @@ body {
 
 .topbar-cta:hover {
   transform: scale(1.04);
-  box-shadow: 0 4px 16px rgba(91, 45, 142, 0.35);
+  box-shadow: 0 4px 16px rgba(74, 30, 126, 0.35);
 }
 
 /* ─── HERO ─────────────────────────────────────────────────────────────────── */
@@ -220,7 +220,7 @@ body {
 }
 
 .primary-btn {
-  background: #4A2170;
+  background: #351158;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -237,7 +237,7 @@ body {
 
 .primary-btn:hover {
   transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(91, 45, 142, 0.4);
+  box-shadow: 0 6px 20px rgba(74, 30, 126, 0.4);
 }
 
 .secondary-btn {
@@ -273,7 +273,7 @@ body {
   width: clamp(180px, 22vw, 280px);
   height: clamp(180px, 22vw, 280px);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(91, 45, 142, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(74, 30, 126, 0.25) 0%, transparent 70%);
   animation: pulse 3s ease-in-out infinite;
 }
 
@@ -321,7 +321,7 @@ body {
   object-position: bottom center;
   display: block;
   flex-shrink: 0;
-  filter: drop-shadow(0 14px 32px rgba(91, 45, 142, 0.35));
+  filter: drop-shadow(0 14px 32px rgba(74, 30, 126, 0.35));
   animation: float 4s ease-in-out infinite;
   position: relative;
   z-index: 2;
@@ -385,11 +385,11 @@ body {
     circle at 30% 30%,
     rgba(255, 255, 255, 1) 0%,
     rgba(249, 168, 212, 0.75) 45%,
-    rgba(91, 45, 142, 0.35) 100%
+    rgba(74, 30, 126, 0.35) 100%
   );
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    inset 0 -2px 4px rgba(91, 45, 142, 0.2),
+    inset 0 -2px 4px rgba(74, 30, 126, 0.2),
     0 0 6px rgba(244, 114, 182, 0.4);
   animation: rise var(--dur) var(--delay) ease-in infinite;
 }
@@ -431,7 +431,7 @@ body {
   width: 80%;
   height: 10px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(91, 45, 142, 0.5) 0%, transparent 75%);
+  background: radial-gradient(ellipse, rgba(74, 30, 126, 0.5) 0%, transparent 75%);
   position: absolute;
   bottom: 28px;
   left: 10%;
@@ -536,9 +536,9 @@ body {
 /* ─── EYEBROW PILLS ────────────────────────────────────────────────────────── */
 .eyebrow-pill {
   display: inline-block;
-  background: rgba(91, 45, 142, 0.1);
+  background: rgba(74, 30, 126, 0.1);
   color: var(--cola-purple);
-  border: 1px solid rgba(91, 45, 142, 0.3);
+  border: 1px solid rgba(74, 30, 126, 0.3);
   border-radius: 50px;
   padding: 5px 16px;
   font-size: 0.82rem;
@@ -762,7 +762,7 @@ body {
   color: #fff;
   font-size: 1.2rem;
   font-weight: 800;
-  box-shadow: 0 4px 16px rgba(91,45,142,0.45);
+  box-shadow: 0 4px 16px rgba(74,30,126,0.45);
   position: relative;
   z-index: 1;
 }
@@ -992,12 +992,12 @@ body {
   white-space: nowrap;
   flex-shrink: 0;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(91, 45, 142, 0.4);
+  box-shadow: 0 4px 14px rgba(74, 30, 126, 0.4);
 }
 
 .sticky-cart-btn:hover {
   transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(91, 45, 142, 0.55);
+  box-shadow: 0 6px 20px rgba(74, 30, 126, 0.55);
 }
 
 /* push topbar down when sticky cart is visible */
@@ -1023,7 +1023,7 @@ body {
   align-items: center;
   gap: 8px;
   font-family: inherit;
-  box-shadow: 0 8px 30px rgba(91, 45, 142, 0.45);
+  box-shadow: 0 8px 30px rgba(74, 30, 126, 0.45);
   white-space: nowrap;
   z-index: 200;
   animation: bounce-in 0.6s ease-out;
@@ -1190,8 +1190,8 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(91, 45, 142, 0.07);
-  border: 1px solid rgba(91, 45, 142, 0.2);
+  background: rgba(74, 30, 126, 0.07);
+  border: 1px solid rgba(74, 30, 126, 0.2);
   border-radius: 50px;
   padding: 5px 12px;
   font-size: 0.8rem;
@@ -1221,19 +1221,19 @@ body {
 }
 
 .bundle-row:hover:not(.selected) {
-  border-color: rgba(91, 45, 142, 0.35);
+  border-color: rgba(74, 30, 126, 0.35);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
 }
 
 .bundle-row:focus-visible {
-  outline: 3px solid rgba(91, 45, 142, 0.45);
+  outline: 3px solid rgba(74, 30, 126, 0.45);
   outline-offset: 2px;
 }
 
 .bundle-row.selected {
   border-color: var(--accent, var(--cola-purple));
-  background: rgba(91, 45, 142, 0.03);
-  box-shadow: 0 0 0 4px rgba(91, 45, 142, 0.08);
+  background: rgba(74, 30, 126, 0.03);
+  box-shadow: 0 0 0 4px rgba(74, 30, 126, 0.08);
 }
 
 .selected-check {
@@ -1526,12 +1526,12 @@ body {
   cursor: pointer;
   font-family: inherit;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 6px 24px rgba(91, 45, 142, 0.3);
+  box-shadow: 0 6px 24px rgba(74, 30, 126, 0.3);
 }
 
 .next-btn:hover {
   transform: scale(1.02);
-  box-shadow: 0 8px 30px rgba(91, 45, 142, 0.4);
+  box-shadow: 0 8px 30px rgba(74, 30, 126, 0.4);
 }
 
 /* ─── CONFIRM SUMMARY — compact ────────────────────────────────────────────── */
@@ -1713,7 +1713,7 @@ body {
 .field .select-field:focus {
   outline: none;
   border-color: var(--cola-purple);
-  box-shadow: 0 0 0 3px rgba(91, 45, 142, 0.1);
+  box-shadow: 0 0 0 3px rgba(74, 30, 126, 0.1);
   background: #fff;
 }
 
@@ -1787,7 +1787,7 @@ body {
 .confirm-order-btn {
   width: 100%;
   padding: 16px;
-  background: #4A2170;
+  background: #351158;
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -1800,13 +1800,13 @@ body {
   justify-content: center;
   gap: 8px;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 6px 24px rgba(91, 45, 142, 0.35);
+  box-shadow: 0 6px 24px rgba(74, 30, 126, 0.35);
   margin-bottom: 10px;
 }
 
 .confirm-order-btn:hover:not(:disabled) {
   transform: scale(1.02);
-  box-shadow: 0 8px 30px rgba(91, 45, 142, 0.5);
+  box-shadow: 0 8px 30px rgba(74, 30, 126, 0.5);
 }
 
 .confirm-order-btn:disabled {
@@ -2182,12 +2182,12 @@ body {
 .fqp-btn:hover {
   border-color: var(--cola-purple);
   color: var(--cola-purple);
-  background: rgba(91, 45, 142, 0.05);
+  background: rgba(74, 30, 126, 0.05);
 }
 
 .fqp-btn.fqp-active-cola {
   border-color: #6B21A8;
-  background: rgba(91, 45, 142, 0.1);
+  background: rgba(74, 30, 126, 0.1);
   color: #6B21A8;
 }
 
@@ -2221,8 +2221,8 @@ body {
 
 .flavor-card.active-cola {
   border-color: #6B21A8;
-  background: linear-gradient(180deg, rgba(91, 45, 142, 0.08), #fff);
-  box-shadow: 0 8px 20px rgba(91, 45, 142, 0.1);
+  background: linear-gradient(180deg, rgba(74, 30, 126, 0.08), #fff);
+  box-shadow: 0 8px 20px rgba(74, 30, 126, 0.1);
   transform: translateY(-1px);
 }
 
@@ -2390,12 +2390,12 @@ body {
 
 .month-flavor-btn:hover {
   border-color: var(--cola-purple);
-  background: rgba(91, 45, 142, 0.03);
+  background: rgba(74, 30, 126, 0.03);
 }
 
 .month-flavor-btn.selected {
   border-color: var(--cola-purple);
-  background: rgba(91, 45, 142, 0.06);
+  background: rgba(74, 30, 126, 0.06);
   transform: scale(1.02);
 }
 
@@ -2474,12 +2474,12 @@ body {
   cursor: pointer;
   font-family: inherit;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(91, 45, 142, 0.3);
+  box-shadow: 0 4px 14px rgba(74, 30, 126, 0.3);
 }
 
 .add-to-cart-btn:hover {
   transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(91, 45, 142, 0.45);
+  box-shadow: 0 6px 20px rgba(74, 30, 126, 0.45);
 }
 
 /* ─── CART SUMMARY HEADER ──────────────────────────────────────────────────── */
@@ -2644,7 +2644,7 @@ body {
 
 .fq-active-cola {
   border-color: #6B21A8;
-  background: rgba(91, 45, 142, 0.08);
+  background: rgba(74, 30, 126, 0.08);
   color: #6B21A8;
 }
 
@@ -2690,7 +2690,7 @@ body {
 
 .fq-active-cola {
   border-color: #6B21A8;
-  background: rgba(91, 45, 142, 0.08);
+  background: rgba(74, 30, 126, 0.08);
   color: #6B21A8;
 }
 
@@ -2736,7 +2736,7 @@ body {
 
 .fq-active-cola {
   border-color: #6B21A8;
-  background: rgba(91, 45, 142, 0.08);
+  background: rgba(74, 30, 126, 0.08);
   color: #6B21A8;
 }
 
@@ -2748,19 +2748,19 @@ body {
 
 .fq-active-half {
   border-color: #6B21A8;
-  background: linear-gradient(90deg, rgba(91,45,142,0.08) 50%, rgba(202,138,4,0.08) 50%);
+  background: linear-gradient(90deg, rgba(74,30,126,0.08) 50%, rgba(202,138,4,0.08) 50%);
   color: var(--text-main);
 }
 
 /* ─── TRUST & DELIVERY UX ──────────────────────────────────────────────────── */
 .delivery-highlight {
-  background: linear-gradient(90deg, rgba(91, 45, 142, 0.08), rgba(34, 197, 94, 0.1));
-  border: 1.5px solid rgba(91, 45, 142, 0.25);
+  background: linear-gradient(90deg, rgba(74, 30, 126, 0.08), rgba(34, 197, 94, 0.1));
+  border: 1.5px solid rgba(74, 30, 126, 0.25);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 0.88rem;
   font-weight: 800;
-  color: #4A2170;
+  color: #351158;
   line-height: 1.5;
   margin: 12px 0;
 }
@@ -2846,7 +2846,7 @@ body {
 
 .order-breakdown-total strong {
   font-size: 1.25rem;
-  color: #4A2170;
+  color: #351158;
 }
 
 .order-breakdown-total s {
@@ -2881,7 +2881,7 @@ body {
 }
 
 .fqp-btn--recommended {
-  box-shadow: inset 0 0 0 1px rgba(91, 45, 142, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(74, 30, 126, 0.15);
 }
 
 .success-lead {
@@ -2894,7 +2894,7 @@ body {
 }
 
 .success-lead--accent {
-  color: #4A2170;
+  color: #351158;
   font-weight: 700;
 }
 
@@ -2921,7 +2921,7 @@ body {
 .sticky-cta,
 .next-btn,
 .add-to-cart-btn {
-  background: #4A2170;
+  background: #351158;
 }
 
 .sticky-cta {
@@ -2973,7 +2973,7 @@ body {
 /* ─── HERO V2 — creamy scoop style (replaces cola bottles) ─────────────────── */
 .hero {
   background:
-    radial-gradient(circle at 85% 15%, rgba(91, 45, 142, 0.10) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(74, 30, 126, 0.10) 0%, transparent 45%),
     radial-gradient(circle at 70% 90%, rgba(16, 185, 129, 0.10) 0%, transparent 40%),
     linear-gradient(135deg, #FFFBEB 0%, #FFF7ED 35%, #EFE7FA 75%, #ECFDF5 100%);
 }
@@ -3003,7 +3003,7 @@ body {
   height: 280px;
   top: -20px;
   right: -30px;
-  background: radial-gradient(circle, rgba(91, 45, 142, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(74, 30, 126, 0.22) 0%, transparent 70%);
   animation: pulse 3.5s ease-in-out infinite;
 }
 
@@ -3088,7 +3088,7 @@ body {
   padding: 4px 12px;
   border-radius: 50px;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(91, 45, 142, 0.35);
+  box-shadow: 0 4px 14px rgba(74, 30, 126, 0.35);
 }
 
 .hero-card-badge--keto {
@@ -3127,7 +3127,7 @@ body {
 
 .hero-flavor-chip {
   background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(91, 45, 142, 0.18);
+  border: 1px solid rgba(74, 30, 126, 0.18);
   color: #7C2D52;
   font-size: 0.72rem;
   font-weight: 700;
@@ -3141,7 +3141,7 @@ body {
   text-align: center;
   font-size: 0.75rem;
   font-weight: 800;
-  color: #4A2170;
+  color: #351158;
   margin-top: 4px;
 }
 
@@ -3193,7 +3193,7 @@ body {
 }
 
 .hero-v3-text .hero-sub strong {
-  color: #4A2170;
+  color: #351158;
 }
 
 .hero-offers {
@@ -3219,7 +3219,7 @@ body {
 
 .hero-offer--pink {
   border-color: rgba(236, 72, 153, 0.4);
-  box-shadow: 0 10px 28px rgba(91, 45, 142, 0.14);
+  box-shadow: 0 10px 28px rgba(74, 30, 126, 0.14);
 }
 
 .hero-offer--green {
@@ -3269,7 +3269,7 @@ body {
 .hero-offer-go {
   font-size: 0.78rem;
   font-weight: 800;
-  color: #4A2170;
+  color: #351158;
   white-space: nowrap;
 }
 

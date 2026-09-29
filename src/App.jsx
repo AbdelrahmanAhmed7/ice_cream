@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { buildPurchaseMeta, createMetaEventId, trackBrowserEventOnce } from './metaTracking'
 import { CheckCircle2, Phone, Mail } from 'lucide-react'
 import logo from './assets/logo.png'
@@ -617,6 +617,34 @@ function Landing({ onConfirm }) {
 
   const scrollToBundles = () => document.getElementById('bundles-section')?.scrollIntoView({ behavior: 'smooth' })
 
+  // الرابط يتحرك مع السكرول: كل قسم يظهر يحدّث الـ hash فوق
+  useEffect(() => {
+    const spy = [
+      { id: 'top', url: '/' },
+      { id: 'bundles-section', url: '#bundles-section' },
+      { id: 'benefits-section', url: '#benefits-section' },
+      { id: 'faq', url: '#faq' },
+    ]
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const match = spy.find((s) => s.id === e.target.id)
+            if (match && window.location.pathname === '/') {
+              window.history.replaceState({}, '', match.url)
+            }
+          }
+        })
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    )
+    spy.forEach((s) => {
+      const el = document.getElementById(s.id)
+      if (el) obs.observe(el)
+    })
+    return () => obs.disconnect()
+  }, [])
+
   return (
     <div className={`landing ${cartCount > 0 ? 'landing--has-cart' : 'landing--sticky-cta'}`}>
 
@@ -658,7 +686,7 @@ function Landing({ onConfirm }) {
         </div>
       </header>
 
-      <section className="hero hero-v3">
+      <section className="hero hero-v3" id="top">
         <div className="hero-v3-text">
           <p className="eyebrow-pill">Healthy &amp; Tasty • بدون سكر 🤍</p>
           <h1>
@@ -883,6 +911,22 @@ function App() {
   const [cartItems, setCartItems] = useState([])
   // Prevents AddToCart pixel from firing more than once per page session
   const addToCartSentRef = useRef(false)
+
+  // Refresh على رابط خطوة (/confirmation_order) يرجع للرئيسية + زرار الرجوع يرجع للاندنج
+  useEffect(() => {
+    if (window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/')
+    }
+    const onPop = () => {
+      setFlow('landing')
+      setCartItems([])
+      if (window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/')
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   if (flow === 'landing') {
     return (
