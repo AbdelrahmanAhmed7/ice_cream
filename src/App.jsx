@@ -192,8 +192,8 @@ const faqs = [
   { q: 'أطلب إزاي؟', a: 'اختار العرض، أكمل بياناتك، وفريقنا هيتواصل معاك لتأكيد الطلب والتوصيل.' },
 ]
 
-// سكريبت الطلبات الخاص بمشروع Healthy Icecream/Keto (شيت منفصل — deployed 29/09/2026)
-const ORDER_API_URL = 'https://script.google.com/macros/s/AKfycbxokXO5MPvhstfeE3Jnxroe1aGggf8FN7N8fu5qH6owTgXvYMoIJnJQmvDVBlNNCgw1sQ/exec'
+// سكريبت الطلبات الخاص بمشروع Healthy Icecream/Keto (شيت منفصل — updated 29/09/2026)
+const ORDER_API_URL = 'https://script.google.com/macros/s/AKfycbyYhinLQ33jrgKXxO7UTXDrByFNAJi_bMZ501k3NUlluL1yqwap8q1T0nK-dHXZiDTG/exec'
 
 const getCookie = (name) => {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))

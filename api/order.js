@@ -1,4 +1,4 @@
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxokXO5MPvhstfeE3Jnxroe1aGggf8FN7N8fu5qH6owTgXvYMoIJnJQmvDVBlNNCgw1sQ/exec'
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyYhinLQ33jrgKXxO7UTXDrByFNAJi_bMZ501k3NUlluL1yqwap8q1T0nK-dHXZiDTG/exec'
 
 
 export default async function handler(req, res) {
