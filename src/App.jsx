@@ -830,20 +830,16 @@ function Landing({ onConfirm }) {
                   <img src={bundle.image} alt={`صورة ${bundle.name} — Healthy & Tasty`} loading="lazy" />
                 </div>
                 <div className="bundle-row-info">
-                  <h3>{bundle.name} · {bundle.unitsLabel}</h3>
+                  <h3>{bundle.name}</h3>
                   <p>{bundle.description}</p>
-                  {bundle.note && <p className="bundle-row-note">{bundle.note}</p>}
-                  <p className={`delivery-tag ${bundle.shippingTbd ? 'delivery-tag--tbd' : bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
-                    {bundle.deliveryNote}
+                  <p className="bundle-row-note">{bundle.note}</p>
+                  <p className={`delivery-tag ${bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
+                    {bundle.deliveryNote || (bundle.freeShipping ? '🚚 التوصيل مجاني' : '🚚 التوصيل 50 جنيه')}
                   </p>
                   <div className="bundle-row-price">
                     <strong>{bundle.price * Math.max(qty, 1)} ج.م</strong>
-                    {bundle.originalPrice > bundle.price && (
-                      <>
-                        <s>{bundle.originalPrice * Math.max(qty, 1)} ج.م</s>
-                        <span className="saving-tag">وفر {bundle.saving * Math.max(qty, 1)} ج.م</span>
-                      </>
-                    )}
+                    <s>{bundle.originalPrice * Math.max(qty, 1)} ج.م</s>
+                    <span className="saving-tag">وفر {bundle.saving * Math.max(qty, 1)} ج.م</span>
                   </div>
                   <div className="bundle-row-actions" onClick={e => e.stopPropagation()}>
                     {inCart ? (

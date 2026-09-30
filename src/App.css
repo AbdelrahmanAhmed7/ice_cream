@@ -1209,32 +1209,31 @@ body {
 
 .bundle-row {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
+  align-items: center;
+  gap: 14px;
   background: #fff;
   border: 2px solid #e5e7eb;
   border-radius: var(--radius);
-  overflow: hidden;
+  padding: 16px;
   cursor: pointer;
   position: relative;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
 .bundle-row:hover:not(.selected) {
-  border-color: rgba(74, 30, 126, 0.35);
+  border-color: rgba(107, 33, 168, 0.35);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
 }
 
 .bundle-row:focus-visible {
-  outline: 3px solid rgba(74, 30, 126, 0.45);
+  outline: 3px solid rgba(107, 33, 168, 0.45);
   outline-offset: 2px;
 }
 
 .bundle-row.selected {
   border-color: var(--accent, var(--cola-purple));
-  background: rgba(74, 30, 126, 0.03);
-  box-shadow: 0 0 0 4px rgba(74, 30, 126, 0.08);
+  background: rgba(107, 33, 168, 0.03);
+  box-shadow: 0 0 0 4px rgba(107, 33, 168, 0.08);
 }
 
 .selected-check {
@@ -1271,20 +1270,17 @@ body {
 }
 
 .bundle-row-img {
-  width: 100%;
-  height: auto;
+  width: 90px;
+  height: 90px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
   flex-shrink: 0;
 }
 
 .bundle-row-img img {
   width: 100%;
-  height: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.bundle-row-info {
-  padding: 12px 16px 16px;
+  height: 100%;
+  object-fit: cover;
 }
 
 .bundle-row-info h3 {
@@ -1367,13 +1363,6 @@ body {
   background: #fef3c7;
   color: #92400e;
   border: 1.5px solid #f59e0b;
-}
-
-.delivery-tag--tbd {
-  background: #fff7ed;
-  color: #9a3412;
-  border: 1.5px solid #fdba74;
-  box-shadow: 0 2px 10px rgba(251, 146, 60, 0.2);
 }
 
 /* bundle-rows inside dark landing section */
@@ -2489,12 +2478,12 @@ body {
   cursor: pointer;
   font-family: inherit;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(74, 30, 126, 0.3);
+  box-shadow: 0 4px 14px rgba(107, 33, 168, 0.3);
 }
 
 .add-to-cart-btn:hover {
   transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(74, 30, 126, 0.45);
+  box-shadow: 0 6px 20px rgba(107, 33, 168, 0.45);
 }
 
 /* ─── CART SUMMARY HEADER ──────────────────────────────────────────────────── */
