@@ -4,6 +4,8 @@ import { CheckCircle2, Phone, Mail } from 'lucide-react'
 import logo from './assets/logo.png'
 import heroIcecreamImg from './assets/icecream-vanilla.jpeg'
 import heroKetobarImg from './assets/hero-ketobar-double-chocolate.png'
+import offerIcecreamImg from './assets/ice_cream.jpeg'
+import offerKetoImg from './assets/keto.jpeg'
 import iceVanilla from './assets/icecream-vanilla.jpeg'
 import iceChocolate from './assets/icecream-chocolate.jpeg'
 import iceStrawberry from './assets/icecream-strawberry.jpeg'
@@ -42,35 +44,53 @@ const offerTrustBadges = [
   { icon: '📞', label: 'تأكيد الطلب سريع' },
 ]
 
-// الشحن يُحسب مرة واحدة فقط للطلب — الكيتو بار مجاني، الآيس كريم 50 ج.
+// الشحن: مجاني للكيتو بار · الآيس كريم شحنه يُحدد عند التأكيد (مش مجاني ومش ثابت)
+// لو السلة فيها أي عرض شحنه TBD → الإجمالي = المنتجات فقط والشحن يتحدد مع الكول سنتر
 const calcItemsSubtotal = (items) =>
   items.reduce((sum, item) => sum + item.bundle.price * item.qty, 0)
 
+const calcShippingTbd = (items) => items.some((item) => item.bundle.shippingTbd)
+
 const calcShipping = (items) => {
-  if (items.length === 0) return 0
+  if (items.length === 0 || calcShippingTbd(items)) return 0
   const hasPaidShipping = items.some((item) => !item.bundle.freeShipping)
   return hasPaidShipping ? DELIVERY_FEE : 0
+}
+
+/** وصف الشحن للعرض في الشيت والرسائل */
+const shippingFeeLabel = (items) => {
+  if (calcShippingTbd(items)) return 'يُحدد عند التأكيد'
+  return calcShipping(items) === 0 ? 'مجاني' : `${calcShipping(items)} ج.م`
+}
+
+/** لاحقة الإجمالي المعروضة (sticky bar / زرار / سطر الإجمالي) */
+const shippingSuffix = (items) => {
+  if (calcShippingTbd(items)) return '· الشحن يُحدد عند التأكيد'
+  return calcShipping(items) === 0 ? '· توصيل مجاني 🚚' : '· شامل الشحن'
 }
 
 /** total = مجموع المنتجات + شحن واحد فقط (أو مجاني) */
 const calcOrderTotal = (items) => calcItemsSubtotal(items) + calcShipping(items)
 
 // العرضان النهائيان فقط — بدون ميكس
+// الأسعار من صور العروض: الآيس كريم 299 بدل 375 / الكيتو بار 250 بدل 340
+// شحن الآيس كريم مش مجاني ولسه متحددش — الكول سنتر هيحدده (shippingTbd)
 const bundles = [
   {
     id: 'icecream',
     name: 'عرض الآيس كريم',
-    badge: '🍨 5 قطع بـ 300 ج',
+    badge: '🍨 5 قطع بـ 299 ج',
     description: `آيس كريم Healthy & Tasty بدون سكر — 5 قطع تختار نكهاتهم بنفسك من 8 نكهات: ${ICECREAM_FLAVORS.join('، ')}`,
-    price: 300,
-    originalPrice: 300,
-    saving: 0,
+    price: 299,
+    originalPrice: 375,
+    saving: 76,
     units: 5,
     unitsLabel: '5 قطع',
     flavors: ICECREAM_FLAVORS,
-    deliveryNote: '🚚 التوصيل 50 جنيه',
+    deliveryNote: '📞 الشحن يُحدد عند التأكيد',
     freeShipping: false,
-    image: heroIcecreamImg,
+    shippingTbd: true,
+    image: offerIcecreamImg,
     accent: '#EC4899',
   },
   {
@@ -79,14 +99,15 @@ const bundles = [
     badge: '💪 4 قطع بـ 250 ج',
     description: `كيتو بار Healthy & Tasty — سناك بروتين من غير سكر · 4 قطع من 5 نكهات: ${KETO_BAR_FLAVORS.join('، ')}`,
     price: 250,
-    originalPrice: 250,
-    saving: 0,
+    originalPrice: 340,
+    saving: 90,
     units: 4,
     unitsLabel: '4 قطع',
     flavors: KETO_BAR_FLAVORS,
     deliveryNote: '🚚 التوصيل مجاني',
     freeShipping: true,
-    image: heroKetobarImg,
+    shippingTbd: false,
+    image: offerKetoImg,
     accent: '#10B981',
   },
 ]
@@ -189,7 +210,7 @@ const egyptGovs = ['القاهرة', 'الجيزة', 'الإسكندرية']
 const faqs = [
   { q: 'الآيس كريم فيه سكر؟', a: 'لا، آيس كريم Healthy & Tasty بدون سكر، ومناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.' },
   { q: 'الكيتو بار مناسب للكيتو؟', a: 'أيوه، الـ Keto Bar مصمم ليناسب نظام الكيتو، وعملي كسناك بين الوجبات تاخده معاك في الشغل أو الجامعة أو الجيم.' },
-  { q: 'إيه العروض المتاحة؟', a: 'عرض الآيس كريم: 5 قطع بـ 300 جنيه + توصيل 50 جنيه. عرض الكيتو بار: 4 قطع بـ 250 جنيه والتوصيل مجاني.' },
+  { q: 'إيه العروض المتاحة؟', a: 'عرض الآيس كريم: 5 قطع بـ 299 جنيه بدلاً من 375، والشحن يُحدد عند التأكيد مع الكول سنتر. عرض الكيتو بار: 4 قطع بـ 250 جنيه بدلاً من 340 والتوصيل مجاني.' },
   { q: 'التوصيل بياخد قد إيه؟', a: 'فريق Healthy & Tasty بيتواصل سريعاً لتأكيد الطلب، والتوصيل يبدأ خلال ساعات بعد التأكيد.' },
   { q: 'الدفع إزاي؟', a: 'الدفع عند الاستلام.' },
   { q: 'أطلب إزاي؟', a: 'اختار العرض، أكمل بياناتك، وفريقنا هيتواصل معاك لتأكيد الطلب والتوصيل.' },
@@ -407,7 +428,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         notes: notes || '',
         bundle: offerSummary,
         subtotal: `${subtotal} ج.م`,
-        shippingFee: shippingFee === 0 ? 'مجاني' : `${shippingFee} ج.م`,
+        shippingFee: shippingFeeLabel(cartItems),
         price: `${totalPrice} ج.م`,
         value: String(totalPrice),          // plain number string — Apps Script parses with Number()
         quantity: String(cartItems.reduce((s, i) => s + i.qty, 0)),
@@ -493,8 +514,8 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
               <span className="success-val">{subtotal} ج.م</span>
             </div>
             <div className="success-card-row">
-              <span className="success-label">الشحن (مرة واحدة)</span>
-              <span className="success-val">{shippingFee === 0 ? 'مجاني 🚚' : `${shippingFee} ج.م`}</span>
+              <span className="success-label">الشحن</span>
+              <span className="success-val">{shippingFeeLabel(cartItems)}</span>
             </div>
             <div className="success-card-row">
               <span className="success-label">الإجمالي</span>
@@ -546,7 +567,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
                   <s>{item.bundle.originalPrice * item.qty} ج.م</s>
                 )}
               </div>
-              <span className="confirm-shipping">{item.bundle.freeShipping ? '🚚 توصيل مجاني' : '🚚 التوصيل 50 ج'}</span>
+              <span className={`confirm-shipping ${item.bundle.shippingTbd ? 'confirm-shipping--tbd' : ''}`}>{item.bundle.shippingTbd ? '📞 الشحن يُحدد عند التأكيد' : '🚚 توصيل مجاني'}</span>
             </div>
           </div>
           <FlavorPicker
@@ -560,7 +581,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       ))}
 
       <div className="order-total-slim">
-        <span>الإجمالي {shippingFee === 0 ? '· توصيل مجاني 🚚' : '· شامل الشحن'}</span>
+        <span>الإجمالي {shippingSuffix(cartItems)}</span>
         <strong>{totalPrice} ج.م</strong>
       </div>
       <div className="form-section">
@@ -620,7 +641,6 @@ function Landing({ onConfirm }) {
     .filter(b => (cart[b.id] || 0) > 0)
     .map(b => ({ bundle: b, qty: cart[b.id] }))
   const cartCheckoutTotal = calcOrderTotal(cartItems)
-  const cartShipping = calcShipping(cartItems)
 
   const addToCart = (bundleId) => setCart(c => ({ ...c, [bundleId]: (c[bundleId] || 0) + 1 }))
   const setQty = (bundleId, val) => {
@@ -685,7 +705,7 @@ function Landing({ onConfirm }) {
             ))}
           </div>
           <button className="sticky-cart-btn" onClick={handleCheckout}>
-            أكمل الطلب — {cartCheckoutTotal} ج.م {cartShipping === 0 ? '· توصيل مجاني 🚚' : '· شامل التوصيل'} ←
+            أكمل الطلب — {cartCheckoutTotal} ج.م {shippingSuffix(cartItems)} ←
           </button>
         </div>
       )}
@@ -776,7 +796,7 @@ function Landing({ onConfirm }) {
         <div className="section-head light">
           <p className="eyebrow-pill light">عرضان فقط 👇 اختار اللي يناسبك</p>
           <h2>الباقة المناسبة ليك</h2>
-          <p>الدفع عند الاستلام 💳 · 🍨 الآيس كريم توصيله 50 ج · 🍫 الكيتو بار توصيله مجاني</p>
+          <p>الدفع عند الاستلام 💳 · 🍨 الآيس كريم: الشحن يُحدد عند التأكيد · 🍫 الكيتو بار: توصيل مجاني</p>
           <DeliveryHighlight compact />
         </div>
         <div className="bundle-list">
@@ -813,8 +833,8 @@ function Landing({ onConfirm }) {
                   <h3>{bundle.name} · {bundle.unitsLabel}</h3>
                   <p>{bundle.description}</p>
                   {bundle.note && <p className="bundle-row-note">{bundle.note}</p>}
-                  <p className={`delivery-tag ${bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
-                    {bundle.deliveryNote || (bundle.freeShipping ? '🚚 التوصيل مجاني' : '🚚 التوصيل 50 جنيه')}
+                  <p className={`delivery-tag ${bundle.shippingTbd ? 'delivery-tag--tbd' : bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
+                    {bundle.deliveryNote}
                   </p>
                   <div className="bundle-row-price">
                     <strong>{bundle.price * Math.max(qty, 1)} ج.م</strong>
@@ -846,7 +866,7 @@ function Landing({ onConfirm }) {
         <OfferTrustPills />
         {cartCount > 0 && (
           <button type="button" className="next-btn landing-next-btn" onClick={handleCheckout}>
-            أكمل الطلب ({cartCount} {cartCount === 1 ? 'عرض' : 'عروض'} — {cartCheckoutTotal} ج.م {cartShipping === 0 ? '· التوصيل مجاني 🚚' : '· شامل التوصيل'}) ←
+            أكمل الطلب ({cartCount} {cartCount === 1 ? 'عرض' : 'عروض'} — {cartCheckoutTotal} ج.م {shippingSuffix(cartItems)}) ←
           </button>
         )}
       </section>
