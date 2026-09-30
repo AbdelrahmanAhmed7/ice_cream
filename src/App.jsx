@@ -80,10 +80,15 @@ const bundles = [
     units: 4,
     unitsLabel: '4 قطع',
     flavors: KETO_BAR_FLAVORS,
+    deliveryNote: '🚚 التوصيل مجاني',
+    freeShipping: true,
     image: offerKetoImg,
     accent: '#10B981',
   },
 ]
+
+/** الكيتو لوحده = شحنه مجاني. الآيس كريم ملوش أي كلام عن الشحن. */
+const onlyKeto = (items) => items.length > 0 && items.every((item) => item.bundle.freeShipping)
 
 /** عدد القطع الافتراضي لكل عرض — يُستخدم في توزيع النكهات */
 const bundleUnits = (bundleId) => bundles.find((b) => b.id === bundleId)?.units ?? 5
@@ -189,7 +194,7 @@ const egyptGovs = ['القاهرة', 'الجيزة', 'الإسكندرية']
 const faqs = [
   { q: 'الآيس كريم فيه سكر؟', a: 'لا، آيس كريم Healthy & Tasty بدون سكر، ومناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.' },
   { q: 'الكيتو بار مناسب للكيتو؟', a: 'أيوه، الـ Keto Bar مصمم ليناسب نظام الكيتو، وعملي كسناك بين الوجبات تاخده معاك في الشغل أو الجامعة أو الجيم.' },
-  { q: 'إيه العروض المتاحة؟', a: 'عرض الآيس كريم: 5 قطع بـ 299 جنيه بدلاً من 375. عرض الكيتو بار: 4 قطع بـ 250 جنيه بدلاً من 340.' },
+  { q: 'إيه العروض المتاحة؟', a: 'عرض الآيس كريم: 5 قطع بـ 299 جنيه بدلاً من 375. عرض الكيتو بار: 4 قطع بـ 250 جنيه بدلاً من 340 والتوصيل مجاني.' },
   { q: 'التوصيل بياخد قد إيه؟', a: 'فريق Healthy & Tasty بيتواصل سريعاً لتأكيد الطلب، والتوصيل يبدأ خلال ساعات بعد التأكيد.' },
   { q: 'الدفع إزاي؟', a: 'الدفع عند الاستلام.' },
   { q: 'أطلب إزاي؟', a: 'اختار العرض، أكمل بياناتك، وفريقنا هيتواصل معاك لتأكيد الطلب والتوصيل.' },
@@ -445,6 +450,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         notes: notes || '',
         bundle: offerSummary,
         subtotal: `${subtotal} ج.م`,
+        shippingFee: onlyKeto(cartItems) ? 'مجاني' : '',
         price: `${totalPrice} ج.م`,
         value: String(totalPrice),          // plain number string — Apps Script parses with Number()
         quantity: String(cartItems.reduce((s, i) => s + i.qty, 0)),
@@ -541,6 +547,12 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
               <span className="success-label">المنتجات</span>
               <span className="success-val">{subtotal} ج.م</span>
             </div>
+            {onlyKeto(cartItems) && (
+              <div className="success-card-row">
+                <span className="success-label">الشحن</span>
+                <span className="success-val">مجاني 🚚</span>
+              </div>
+            )}
             <div className="success-card-row">
               <span className="success-label">الإجمالي</span>
               <span className="success-val price">{totalPrice} ج.م</span>
@@ -591,6 +603,9 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
                   <s>{item.bundle.originalPrice * item.qty} ج.م</s>
                 )}
               </div>
+              {item.bundle.deliveryNote && (
+                <span className="confirm-shipping">{item.bundle.deliveryNote}</span>
+              )}
             </div>
           </div>
           <FlavorPicker
@@ -617,7 +632,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       ))}
 
       <div className="order-total-slim">
-        <span>الإجمالي</span>
+        <span>الإجمالي{onlyKeto(cartItems) ? ' · توصيل مجاني 🚚' : ''}</span>
         <strong>{totalPrice} ج.م</strong>
       </div>
       <div className="form-section">
@@ -753,7 +768,7 @@ function Landing({ onConfirm }) {
             ))}
           </div>
           <button className="sticky-cart-btn" onClick={handleCheckout}>
-            أكمل الطلب — {cartCheckoutTotal} ج.م ←
+            أكمل الطلب — {cartCheckoutTotal} ج.م {onlyKeto(cartItems) ? '· توصيل مجاني 🚚' : ''} ←
           </button>
         </div>
       )}
@@ -844,7 +859,7 @@ function Landing({ onConfirm }) {
         <div className="section-head light">
           <p className="eyebrow-pill light">عرضان فقط 👇 اختار اللي يناسبك</p>
           <h2>الباقة المناسبة ليك</h2>
-          <p>الدفع عند الاستلام 💳</p>
+          <p>الدفع عند الاستلام 💳 · 🍫 الكيتو بار توصيله مجاني</p>
           <DeliveryHighlight compact />
         </div>
         <div className="bundle-list">
@@ -881,6 +896,11 @@ function Landing({ onConfirm }) {
                   <h3>{bundle.name}</h3>
                   <p>{bundle.description}</p>
                   <p className="bundle-row-note">{bundle.note}</p>
+                  {bundle.deliveryNote && (
+                    <p className={`delivery-tag ${bundle.freeShipping ? 'delivery-tag--free' : 'delivery-tag--paid'}`}>
+                      {bundle.deliveryNote}
+                    </p>
+                  )}
                   <div className="bundle-row-price">
                     <strong>{bundle.price * Math.max(qty, 1)} ج.م</strong>
                     <s>{bundle.originalPrice * Math.max(qty, 1)} ج.م</s>
@@ -907,7 +927,7 @@ function Landing({ onConfirm }) {
         <OfferTrustPills />
         {cartCount > 0 && (
           <button type="button" className="next-btn landing-next-btn" onClick={handleCheckout}>
-            أكمل الطلب ({cartCount} {cartCount === 1 ? 'عرض' : 'عروض'} — {cartCheckoutTotal} ج.م) ←
+            أكمل الطلب ({cartCount} {cartCount === 1 ? 'عرض' : 'عروض'} — {cartCheckoutTotal} ج.م{onlyKeto(cartItems) ? ' · التوصيل مجاني 🚚' : ''}) ←
           </button>
         )}
       </section>
