@@ -756,7 +756,7 @@ function Landing({ onConfirm }) {
   }, [])
 
   return (
-    <div className={`landing ${cartCount > 0 ? 'landing--has-cart' : 'landing--sticky-cta'}`}>
+    <div className={`landing ${cartCount > 0 ? 'landing--has-cart' : ''}`}>
 
       {/* STICKY CART BAR */}
       {cartCount > 0 && (
@@ -997,12 +997,6 @@ function Landing({ onConfirm }) {
           ))}
         </div>
       </section>
-
-      {cartCount === 0 && (
-        <button type="button" className="sticky-cta" onClick={scrollToBundles}>
-          🛒 اطلب الآن — {DELIVERY_HOURS_LABEL}
-        </button>
-      )}
 
       <CountdownTimer variant="floating" />
 

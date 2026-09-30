@@ -3752,7 +3752,7 @@ body {
 /* النسخة العائمة — تحت، فوق زرار اطلب الآن */
 .floating-timer {
   position: fixed;
-  bottom: 88px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 150;
@@ -3766,10 +3766,6 @@ body {
   padding: 8px 8px 8px 18px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
-}
-
-.landing--has-cart .floating-timer {
-  bottom: 20px;
 }
 
 .floating-timer-info {
