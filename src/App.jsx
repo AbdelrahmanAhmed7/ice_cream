@@ -151,7 +151,9 @@ const draftSig = (list) => JSON.stringify((list || []).map((i) => ({ id: i.bundl
 
 const loadFormDraft = (list) => {
   try {
-    const d = JSON.parse(sessionStorage.getItem('hc_form_draft'))
+    // v2: المسودات القديمة (الموزعة تلقائياً) تتجاهل — البيزنس طالب البدء من صفر
+    localStorage.removeItem('hc_form_draft')
+    const d = JSON.parse(sessionStorage.getItem('hc_form_draft_v2'))
     if (d && d.sig === draftSig(list)) return d
   } catch { /* ignore */ }
   return null
@@ -319,7 +321,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
   // احفظ مسودة أول بأول — الرجوع من التأكيد أو الـ refresh يرجع ببياناته
   useEffect(() => {
     try {
-      sessionStorage.setItem('hc_form_draft', JSON.stringify({
+      sessionStorage.setItem('hc_form_draft_v2', JSON.stringify({
         sig: draftSig(items),
         itemFlavors, name, phone, gov, address, notes,
       }))
@@ -1011,6 +1013,7 @@ function App() {
     try {
       sessionStorage.removeItem('hc_cart')
       sessionStorage.removeItem('hc_form_draft')
+      sessionStorage.removeItem('hc_form_draft_v2')
     } catch { /* ignore */ }
   }
 
