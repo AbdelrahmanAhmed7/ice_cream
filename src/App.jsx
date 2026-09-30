@@ -591,12 +591,12 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
           <div id="field-name" className={`field ${touched.name && errors.name ? 'field-error' : touched.name && !errors.name ? 'field-ok' : ''}`}>
             <label>الاسم <span className="req">*</span></label>
             <input value={name} onChange={e => setName(e.target.value)} onBlur={() => touch('name')} placeholder="اكتب اسمك الكامل" />
-            {touched.name && errors.name && <p className="field-msg error">{errors.name}</p>}
+            {touched.name && errors.name && <p className="field-msg error" role="alert">{errors.name}</p>}
           </div>
           <div id="field-phone" className={`field ${touched.phone && errors.phone ? 'field-error' : touched.phone && !errors.phone ? 'field-ok' : ''}`}>
             <label>رقم الموبايل <span className="req">*</span></label>
             <input value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => touch('phone')} placeholder="01XXXXXXXXX" type="tel" inputMode="numeric" maxLength={11} />
-            {touched.phone && errors.phone && <p className="field-msg error">{errors.phone}</p>}
+            {touched.phone && errors.phone && <p className="field-msg error" role="alert">{errors.phone}</p>}
           </div>
           </div>
           <div id="field-gov" className={`field ${touched.gov && errors.gov ? 'field-error' : touched.gov && !errors.gov ? 'field-ok' : ''}`}>
@@ -605,12 +605,12 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
               <option value="">اختر محافظتك</option>
               {egyptGovs.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
-            {touched.gov && errors.gov && <p className="field-msg error">{errors.gov}</p>}
+            {touched.gov && errors.gov && <p className="field-msg error" role="alert">{errors.gov}</p>}
           </div>
           <div id="field-address" className={`field ${touched.address && errors.address ? 'field-error' : touched.address && !errors.address ? 'field-ok' : ''}`}>
             <label>العنوان بالتفصيل <span className="req">*</span></label>
             <textarea value={address} onChange={e => setAddress(e.target.value)} onBlur={() => touch('address')} placeholder="المدينة / الشارع / رقم المنزل / أي تفاصيل تساعد في التوصيل" rows={3} />
-            {touched.address && errors.address && <p className="field-msg error">{errors.address}</p>}
+            {touched.address && errors.address && <p className="field-msg error" role="alert">{errors.address}</p>}
           </div>
           <div className="field">
             <label>ملاحظات <span className="opt">(اختياري)</span></label>
@@ -827,7 +827,7 @@ function Landing({ onConfirm }) {
                 {inCart && <div className="selected-check">✓</div>}
                 {bundle.badge && <div className="bundle-row-badge">{bundle.badge}</div>}
                 <div className="bundle-row-img">
-                  <img src={bundle.image} alt={`صورة ${bundle.name} — Healthy & Tasty`} loading="lazy" />
+                  <img src={bundle.image} width="1254" height="1254" alt={`صورة ${bundle.name} — Healthy & Tasty`} loading="lazy" />
                 </div>
                 <div className="bundle-row-info">
                   <h3>{bundle.name}</h3>
