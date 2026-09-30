@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import { buildPurchaseMeta, createMetaEventId, trackBrowserEventOnce } from './metaTracking'
+import CountdownTimer from './components/CountdownTimer'
 import { CheckCircle2, Phone, Mail } from 'lucide-react'
 import logo from './assets/logo.png'
 import heroIcecreamImg from './assets/icecream-vanilla.webp'
@@ -189,7 +190,7 @@ const benefitCards = [
   { icon: '🚚', title: 'طلب سهل', text: 'ادخل بياناتك — فريق Healthy & Tasty هيتواصل سريعاً للتأكيد، والدفع عند الاستلام.' },
 ]
 
-const egyptGovs = ['القاهرة', 'الجيزة', 'الإسكندرية']
+const egyptGovs = ['القاهرة', 'الجيزة', 'الإسكندرية', 'طنطا', 'السويس', 'المنصورة', 'دمياط']
 
 const faqs = [
   { q: 'الآيس كريم فيه سكر؟', a: 'لا، آيس كريم Healthy & Tasty بدون سكر، ومناسب لمتبعي الكيتو والأنظمة منخفضة السعرات.' },
@@ -724,13 +725,13 @@ function Landing({ onConfirm }) {
     onConfirm(items)
   }
 
-  const scrollToBundles = () => document.getElementById('bundles-section')?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBundles = () => document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth' })
 
   // الرابط يتحرك مع السكرول: كل قسم يظهر يحدّث الـ hash فوق
   useEffect(() => {
     const spy = [
       { id: 'top', url: '/' },
-      { id: 'bundles-section', url: '#bundles-section' },
+      { id: 'offers', url: '#offers' },
       { id: 'benefits-section', url: '#benefits-section' },
       { id: 'faq', url: '#faq' },
     ]
@@ -779,12 +780,14 @@ function Landing({ onConfirm }) {
         <span>⚡ التوصيل خلال ساعات من تأكيد الطلب</span>
         <span className="promo-dot">•</span>
         <span>بدون سكر 🤍</span>
+        <span className="promo-dot">•</span>
+        <CountdownTimer variant="bar" />
       </div>
 
       <header className="topbar">
         <img src={logo} alt="Healthy & Tasty" className="topbar-logo" />
         <nav className="topbar-nav" aria-label="أقسام الصفحة">
-          <a href="#bundles-section">العروض</a>
+          <a href="#offers">العروض</a>
           <a href="#benefits-section">ليه Healthy &amp; Tasty</a>
           <a href="#faq">الأسئلة الشائعة</a>
         </nav>
@@ -855,13 +858,14 @@ function Landing({ onConfirm }) {
         </div>
       </section>
 
-      <section className="section dark-section" id="bundles-section">
+      <section className="section dark-section" id="offers">
         <div className="section-head light">
           <p className="eyebrow-pill light">عرضان فقط 👇 اختار اللي يناسبك</p>
           <h2>الباقة المناسبة ليك</h2>
           <p>الدفع عند الاستلام 💳 · 🍫 الكيتو بار توصيله مجاني</p>
           <DeliveryHighlight compact />
         </div>
+        <CountdownTimer variant="offers" />
         <div className="bundle-list">
           {bundles.map((bundle) => {
             const qty = cart[bundle.id] || 0
@@ -999,6 +1003,8 @@ function Landing({ onConfirm }) {
           🛒 اطلب الآن — {DELIVERY_HOURS_LABEL}
         </button>
       )}
+
+      <CountdownTimer variant="floating" />
 
       <footer className="footer">
         <img src={logo} alt="شعار Healthy and Tasty" className="footer-logo" />
