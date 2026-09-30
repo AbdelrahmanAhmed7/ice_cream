@@ -1820,6 +1820,37 @@ body {
   cursor: not-allowed;
 }
 
+/* ─── SUBMIT ERROR ─────────────────────────────────────────────────────────── */
+.submit-error {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.submit-error p {
+  font-size: 0.9rem;
+  color: #7f1d1d;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+
+.submit-error .confirm-order-btn {
+  margin: 8px 0;
+}
+
+.submit-error-contact {
+  margin-bottom: 0 !important;
+}
+
+.submit-error-contact a {
+  color: var(--cola-purple);
+  font-weight: 800;
+  text-decoration: none;
+}
+
 /* ─── SELECT FIELD ─────────────────────────────────────────────────────────── */
 .select-field {
   appearance: none;
@@ -2952,8 +2983,7 @@ body {
   }
 
   .sticky-cart-items {
-    width: 100%;
-    order: 2;
+    display: none;
   }
 
   .sticky-cart-btn {
@@ -3555,6 +3585,15 @@ body {
 .flavor-row .flavor-counter {
   margin-inline-start: auto;
   flex-shrink: 0;
+}
+
+.flavor-error {
+  text-align: center;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 10px;
 }
 
 /* ─── REDUCED MOTION ───────────────────────────────────────────────────────── */

@@ -2,22 +2,22 @@
 import { buildPurchaseMeta, createMetaEventId, trackBrowserEventOnce } from './metaTracking'
 import { CheckCircle2, Phone, Mail } from 'lucide-react'
 import logo from './assets/logo.png'
-import heroIcecreamImg from './assets/icecream-vanilla.jpeg'
-import heroKetobarImg from './assets/hero-ketobar-double-chocolate.png'
-import offerIcecreamImg from './assets/ice_cream.jpeg'
-import offerKetoImg from './assets/keto.jpeg'
-import iceVanilla from './assets/icecream-vanilla.jpeg'
-import iceChocolate from './assets/icecream-chocolate.jpeg'
-import iceStrawberry from './assets/icecream-strawberry.jpeg'
-import icePistachio from './assets/icecream-pistachio.png'
-import iceBlueberry from './assets/icecream-blueberry.png'
-import iceCantaloupe from './assets/icecream-cantaloupe.png'
-import iceHazelnut from './assets/icecream-hazelnut.png'
-import iceMango from './assets/icecream-mango.jpeg'
-import ketoAlmond from './assets/ketobar-almond.png'
-import ketoCoconut from './assets/ketobar-coconut.png'
-import ketoHazelnut from './assets/ketobar-hazelnut.png'
-import ketoPeanut from './assets/ketobar-peanut-butter.png'
+import heroIcecreamImg from './assets/icecream-vanilla.webp'
+import heroKetobarImg from './assets/hero-ketobar-double-chocolate.webp'
+import offerIcecreamImg from './assets/ice_cream.webp'
+import offerKetoImg from './assets/keto.webp'
+import iceVanilla from './assets/icecream-vanilla.webp'
+import iceChocolate from './assets/icecream-chocolate.webp'
+import iceStrawberry from './assets/icecream-strawberry.webp'
+import icePistachio from './assets/icecream-pistachio.webp'
+import iceBlueberry from './assets/icecream-blueberry.webp'
+import iceCantaloupe from './assets/icecream-cantaloupe.webp'
+import iceHazelnut from './assets/icecream-hazelnut.webp'
+import iceMango from './assets/icecream-mango.webp'
+import ketoAlmond from './assets/ketobar-almond.webp'
+import ketoCoconut from './assets/ketobar-coconut.webp'
+import ketoHazelnut from './assets/ketobar-hazelnut.webp'
+import ketoPeanut from './assets/ketobar-peanut-butter.webp'
 import './App.css'
 
 // العروض النهائية (29/09/2026 من المستخدم):
@@ -163,6 +163,22 @@ const evenSplit = (total, n) => {
 const formatFlavorSummary = (names, values) =>
   names.map((n, i) => (values?.[i] > 0 ? `${values[i]} ${n}` : '')).filter(Boolean).join(' + ') || 'بدون تحديد'
 
+/** طلب فشل إرساله سابقاً — يُعاد إرساله في الخلفية (بدون حظر الواجهة).
+ *  يُمسح من التخزين عند نجاح أي إرسال لاحق. لا يُطلق أي حدث Pixel هنا. */
+const flushPendingOrder = () => {
+  try {
+    const raw = localStorage.getItem('hc_failed_order')
+    if (!raw) return
+    const pending = JSON.parse(raw)
+    if (!pending || !pending.url) return
+    fetch(pending.url, { method: 'GET', mode: 'no-cors', keepalive: true })
+      .then(() => {
+        try { localStorage.removeItem('hc_failed_order') } catch { /* ignore */ }
+      })
+      .catch((err) => console.error('[Order] Background retry failed:', err))
+  } catch { /* ignore */ }
+}
+
 /** مسودة الفورم في sessionStorage — عشان الرجوع من التأكيد يرجع ببياناته */
 const draftSig = (list) => JSON.stringify((list || []).map((i) => ({ id: i.bundle.id, qty: i.qty })))
 
@@ -182,20 +198,14 @@ const heroPerks = [
   {label: 'الدفع عند الاستلام' },
 ]
 
-/** صور شريط الهيرو المتحرك — كل المنتجات */
+/** صور شريط الهيرو المتحرك — 6 نكهات فقط (تتكرر مرة واحدة للحلقة السلسة = 12 صورة) */
 const heroMarqueeItems = [
   { img: iceVanilla, name: 'فانيليا' },
-  { img: iceChocolate, name: 'شوكولاتة' },
   { img: iceStrawberry, name: 'فراولة' },
   { img: icePistachio, name: 'فسدق' },
-  { img: iceBlueberry, name: 'بلوبيري' },
-  { img: iceCantaloupe, name: 'كنتالوب' },
-  { img: iceHazelnut, name: 'بندق' },
   { img: heroKetobarImg, name: 'دبل شوكولاتة' },
   { img: ketoPeanut, name: 'فول سوداني' },
   { img: ketoCoconut, name: 'جوز هند' },
-  { img: ketoAlmond, name: 'لوز' },
-  { img: ketoHazelnut, name: 'بندق بار' },
 ]
 
 const benefitCards = [
@@ -214,6 +224,10 @@ const faqs = [
   { q: 'التوصيل بياخد قد إيه؟', a: 'فريق Healthy & Tasty بيتواصل سريعاً لتأكيد الطلب، والتوصيل يبدأ خلال ساعات بعد التأكيد.' },
   { q: 'الدفع إزاي؟', a: 'الدفع عند الاستلام.' },
   { q: 'أطلب إزاي؟', a: 'اختار العرض، أكمل بياناتك، وفريقنا هيتواصل معاك لتأكيد الطلب والتوصيل.' },
+  // TODO: سياسة المنتج السايح/التالف — تُعرض فقط بعد استلام MELT_DAMAGE_POLICY من المستخدم
+  // { q: 'لو المنتج وصل سايح أو تالف أعمل إيه؟', a: 'MELT_DAMAGE_POLICY' },
+  // TODO: سياسة الاستبدال/إعادة الطلب — تُعرض فقط بعد استلام EXCHANGE_POLICY من المستخدم
+  // { q: 'في استبدال أو إعادة طلب؟', a: 'EXCHANGE_POLICY' },
 ]
 
 // سكريبت الطلبات الخاص بمشروع Healthy Icecream/Keto (شيت منفصل — updated 29/09/2026)
@@ -325,6 +339,8 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
   // if a second call arrives with the same or a different eventId.
   const purchaseSubmitLock = useRef(false)
   const [touched, setTouched] = useState({})
+  // index العرض اللي نكهاته ناقصة (يظهر تحته خطأ ويتعمله scroll)
+  const [flavorErrorIdx, setFlavorErrorIdx] = useState(null)
   const [itemFlavors, setItemFlavors] = useState(() => {
     if (savedDraft && Array.isArray(savedDraft.itemFlavors) && savedDraft.itemFlavors.length === initialItems.length) {
       return savedDraft.itemFlavors
@@ -384,6 +400,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
     if (purchaseSubmitLock.current) return
 
     setTouched({ name: true, phone: true, gov: true, address: true })
+    setFlavorErrorIdx(null)
     const currentErrors = {
       name: !name.trim() ? 'الاسم مطلوب' : '',
       phone: !phone.trim() ? 'رقم الموبايل مطلوب' : !/^01[0-9]{9}$/.test(phone.trim()) ? 'رقم غير صحيح، مثال: 01XXXXXXXXX' : '',
@@ -396,19 +413,52 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       return
     }
 
+    // النكهات لازم تكمل عدد قطع كل عرض — اللي ميلمسش العدادات معفي (متوزعة مشكّل من الأول)
+    const incompleteIdx = cartItems.findIndex((item, i) => {
+      const need = bundleUnits(item.bundle.id) * item.qty
+      const got = (itemFlavors[i] || []).reduce((s, v) => s + v, 0)
+      return got < need
+    })
+    if (incompleteIdx !== -1) {
+      setFlavorErrorIdx(incompleteIdx)
+      setTimeout(() => {
+        document.getElementById(`offer-block-${incompleteIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 50)
+      return
+    }
+
     // Set lock BEFORE any async work — prevents all re-entry paths
     purchaseSubmitLock.current = true
     setStatus('sending')
 
+    // no-cors responses are opaque: only NETWORK failures (rejection) are detectable.
+    const postOrder = (url) => fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true })
+
+    // Shared failure path: no success screen, cart + draft stay intact.
+    const failSubmit = (err) => {
+      console.error('[Order] Submit failed:', err)
+      purchaseSubmitLock.current = false // allow manual retry (new eventId per attempt)
+      setStatus('failed')
+      try {
+        if (typeof window.fbq === 'function') window.fbq('trackCustom', 'OrderSubmitFailed')
+      } catch { /* ignore */ }
+      setTimeout(() => {
+        document.getElementById('submit-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 50)
+    }
+
+    let orderUrl = ''
+    let eventId = ''
     try {
       const orderSummary = buildOrderSummary()
       const offerSummary = buildOfferSummary()
 
-      // Build purchase meta ONCE — this generates the single eventId shared by
+      // Build purchase meta ONCE per attempt — this generates the single eventId shared by
       // both the browser Pixel and the CAPI call. Never call buildPurchaseMeta()
-      // twice for the same order.
+      // twice for the same attempt.
       const purchaseMeta = buildPurchaseMeta({ value: totalPrice, contentName: offerSummary })
-      const { eventName, eventTime, eventId, eventParams } = purchaseMeta
+      const { eventName, eventTime, eventParams } = purchaseMeta
+      eventId = purchaseMeta.eventId
 
       // Debug log — verify value/currency/event_id before any network call
       console.log('[Order] Purchase submit:', {
@@ -436,7 +486,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         productWeight: PRODUCT_SIZES_LABEL,
         eventName,
         eventTime: String(eventTime),
-        eventId,                            // same id sent to CAPI server-side
+        eventId,                            // same id sent to CAPI server-side + reused on retry
         eventSourceUrl: window.location.href,
         fbp: getCookie('_fbp'),
         fbc: getFbc(),
@@ -447,28 +497,40 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       // كل طلب مؤكد لازم يتبعت — حتى لو اتعمل طلب قبل كده في نفس الجلسة
       // (العميل ممكن يطلب أكتر من مرة). منع التكرار لنفس الطلب مضمون بـ:
       // 1) purchaseSubmitLock + status guards (ضد الدوس المزدوج)
-      // 2) eventId فريد لكل طلب + capiAlreadySent() في السكريبت (ضد تكرار CAPI)
-      // 3) trackBrowserEventOnce (ضد تكرار البكسل)
-      const orderUrl = `${ORDER_API_URL}?${orderPayload.toString()}`
-      fetch(orderUrl, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {})
+      // 2) eventId فريد لكل محاولة + capiAlreadySent() في السكريبت (ضد تكرار CAPI)
+      // 3) trackBrowserEventOnce (ضد تكرار البكسل — يُستدعى عند النجاح فقط)
+      orderUrl = `${ORDER_API_URL}?${orderPayload.toString()}`
+      try {
+        await postOrder(orderUrl)
+      } catch (err1) {
+        console.error('[Order] Submit attempt 1 failed, retrying once:', err1)
+        await new Promise((r) => setTimeout(r, 1500))
+        await postOrder(orderUrl) // throws → failure path below
+      }
 
-      // ── Browser Pixel ─────────────────────────────────────────────────────
-      // trackBrowserEventOnce uses its own sessionStorage key per (eventName+eventId)
-      // so it is safe to call even if this component re-renders.
+      // ── SUCCESS ─────────────────────────────────────────────────────────────
+      try { localStorage.removeItem('hc_failed_order') } catch { /* ignore */ }
+
+      // ── Browser Pixel (fires ONLY on success — never twice for one order) ──
+      // trackBrowserEventOnce uses its own sessionStorage key per (eventName+eventId).
       // The eventID option MUST match the event_id sent to CAPI above.
       trackBrowserEventOnce(eventName, eventParams, eventId)
 
       window.history.pushState({}, '', '/confirmation_order')
       setStatus('done')
     } catch (err) {
-      console.error('[Order] Submit error:', err)
-      setStatus('done')
+      // Rejection here = network failure on both attempts (or payload build error).
+      // Save payload (with its eventId) for background retry — do NOT show success.
+      if (orderUrl) {
+        try {
+          localStorage.setItem('hc_failed_order', JSON.stringify({ url: orderUrl, eventId, ts: Date.now() }))
+        } catch { /* ignore */ }
+      }
+      failSubmit(err)
     }
-    // NOTE: purchaseSubmitLock is intentionally NOT released in finally.
-    // Once an order is submitted (success or error) the lock stays true
-    // for the lifetime of this component instance, preventing any retry
-    // from firing a second Purchase event. The status === 'done' guard
-    // also catches this, but the lock is a belt-and-suspenders safety net.
+    // NOTE: purchaseSubmitLock stays true after success (blocks any re-fire for this
+    // component instance). It is released ONLY in failSubmit() to allow a manual retry,
+    // which builds a fresh eventId — so Pixel/CAPI can never double-fire one order.
   }
 
   if (status === 'done') {
@@ -550,7 +612,7 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
       </div>
 
       {cartItems.map((item, i) => (
-        <div key={i} className="order-offer-block">
+        <div key={i} className="order-offer-block" id={`offer-block-${i}`}>
           {cartItems.length > 1 && (
             <h3 className="offer-index">العرض {i === 0 ? 'الأول' : 'الثاني'}</h3>
           )}
@@ -575,8 +637,21 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
             values={itemFlavors[i]}
             total={bundleUnits(item.bundle.id) * item.qty}
             images={bundleImages(item.bundle.id)}
-            onChange={(v) => setItemFlavors(prev => prev.map((x, idx) => idx === i ? v : x))}
+            onChange={(v) => {
+              setItemFlavors(prev => prev.map((x, idx) => idx === i ? v : x))
+              if (flavorErrorIdx === i) setFlavorErrorIdx(null)
+            }}
           />
+          {flavorErrorIdx === i && (() => {
+            const need = bundleUnits(item.bundle.id) * item.qty
+            const got = (itemFlavors[i] || []).reduce((s, v) => s + v, 0)
+            const rem = need - got
+            return (
+              <p className="field-msg error flavor-error" role="alert">
+                ⚠️ كمّل نكهات {item.bundle.name} — فاضل {rem} {rem === 1 ? 'قطعة' : 'قطع'}
+              </p>
+            )
+          })()}
         </div>
       ))}
 
@@ -619,6 +694,18 @@ function StepConfirm({ cartItems: initialItems, onBack }) {
         </div>
       </div>
 
+      {status === 'failed' && (
+        <div className="submit-error" id="submit-error" role="alert">
+          <p><strong>حصلت مشكلة في إرسال الطلب 😕</strong></p>
+          <p>اتأكد من الإنترنت ودوس حاول تاني — سلتك وبياناتك محفوظين.</p>
+          <button className="confirm-order-btn" onClick={handleSubmit}>
+            🔄 حاول تاني
+          </button>
+          <p className="submit-error-contact">
+            أو كلمنا مباشرة: <a href="tel:+201100863802" dir="ltr">01100863802</a>
+          </p>
+        </div>
+      )}
       <button className="confirm-order-btn" onClick={handleSubmit} disabled={status === 'sending'}>
         {status === 'sending' ? '⏳ جاري تسجيل الطلب…' : `تأكيد الطلب • ${totalPrice} ج.م`}
       </button>
@@ -763,7 +850,7 @@ function Landing({ onConfirm }) {
           <div className="hero-blob hero-blob--berry" aria-hidden="true" />
           <div className="hero-blob hero-blob--mint" aria-hidden="true" />
           <div className="hero-stage">
-            <img src={iceVanilla} alt="آيس كريم فانيليا بدون سكر" className="hero-main-img" />
+            <img src={iceVanilla} alt="آيس كريم فانيليا بدون سكر" className="hero-main-img" fetchPriority="high" loading="eager" decoding="async" />
             <span className="hero-float-tag hero-float-tag--pink">🍨 8 نكهات آيس كريم</span>
             <span className="hero-float-tag hero-float-tag--green">🍫 5 نكهات كيتو بار</span>
             <span className="hero-float-tag hero-float-tag--white">بدون سكر ✓</span>
@@ -784,7 +871,7 @@ function Landing({ onConfirm }) {
           <div className="hero-marquee-track">
             {[...heroMarqueeItems, ...heroMarqueeItems].map((m, i) => (
               <span key={i} className="hero-marquee-item">
-                <img src={m.img} alt={`نكهة ${m.name}`} loading="lazy" />
+                <img src={m.img} alt={`نكهة ${m.name}`} loading="lazy" decoding="async" />
                 <em>{m.name}</em>
               </span>
             ))}
@@ -1026,7 +1113,13 @@ function App() {
       }
     }
     window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
+    // طلب سابق فشل إرساله؟ حاول في الخلفية عند الفتح أو رجوع الإنترنت
+    flushPendingOrder()
+    window.addEventListener('online', flushPendingOrder)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('online', flushPendingOrder)
+    }
   }, [])
 
   if (flow === 'landing') {
