@@ -74,7 +74,7 @@ google-apps-script.js
 إلى Google Apps Script المرتبط بالشيت، ثم عدل القيم التالية:
 
 ```js
-var FB_PIXEL_ID = '2267627306980280';
+var FB_PIXEL_ID = '1444230060383429';
 var FB_ACCESS_TOKEN = 'PASTE_META_CAPI_ACCESS_TOKEN_HERE';
 var FB_TEST_EVENT_CODE = '';
 ```
@@ -109,19 +109,18 @@ src/App.jsx
 - Bundle
 - Flavors
 - Quantity
-- Price
-- Product Weight (اختياري — القيمة الافتراضية `350 مل`)
+- Price (الإجمالي فقط — مفيش أعمدة شحن/وزن/منتجات/قيمة في الشيت)
 
 عمود `Bundle` يستقبل اسم الأوفر والكمية فقط، مثل:
 
 ```txt
-عرض الكومبو ×1
+عرض الآيس كريم ×1
 ```
 
 عمود `Flavors` يستقبل تفاصيل النكهات، مثل:
 
 ```txt
-عرض الكومبو ×1 (6 كولا + 6 ليمون) + هدية (3 كولا + 3 ليمون)
+عرض الآيس كريم ×1 (2 فانيليا + 2 شوكولاتة + 1 فراولة)
 ```
 
 ## Verification
